@@ -1,0 +1,103 @@
+name: Vérification du volume (seed)
+
+# Vérification du volume des cellules (doc 2b, section 2 bis). Lancement MANUEL uniquement.
+# Sans « execute », le job fait un dry-run : aucun secret lu, aucun appel Apify, aucune dépense.
+# Avec « execute », il dépense sur la campagne verify-YYYY-MM (plafond 12 €, arrêt dur 11 €).
+on:
+  workflow_dispatch:
+    inputs:
+      cellules:
+        description: 'Cellules à mesurer : « pilotes » (Nike, Adidas, Sézane) ou « reste » (les autres, seulement si les pilotes passent).'
+        type: choice
+        options: [pilotes, reste]
+        default: pilotes
+      execute:
+        description: 'Dépenser réellement (appels Apify facturés). Décoché = dry-run.'
+        type: boolean
+        default: false
+
+# Même groupe que le seed quotidien : jamais deux jobs qui dépensent en parallèle.
+concurrency:
+  group: seed
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify-volume:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+
+      # Dry-run : aucun secret n'est exposé à cette étape.
+      - name: Dry-run (aucune dépense)
+        if: ${{ !inputs.execute }}
+        run: |
+          mkdir -p logs
+          pnpm seed:verify-volume --etape "$ETAPE" \
+            --cout-par-1000 "$SEED_COUT_PAR_1000_CENTS" --cout-par-run "$SEED_COUT_PAR_RUN_CENTS" \
+            | tee "logs/verify-dry-run-$(date -u +%Y%m%dT%H%M%SZ).txt"
+          echo "::notice title=Dry-run::dry-run, aucune dépense. Relancer avec « execute » coché pour mesurer réellement."
+        env:
+          ETAPE: ${{ inputs.cellules }}
+          SEED_COUT_PAR_1000_CENTS: ${{ vars.SEED_COUT_PAR_1000_CENTS || '240' }}
+          SEED_COUT_PAR_RUN_CENTS: ${{ vars.SEED_COUT_PAR_RUN_CENTS || '5' }}
+
+      # Échec immédiat et explicite si la configuration est absente : aucun appel.
+      - name: Vérifier la configuration
+        if: ${{ inputs.execute }}
+        run: |
+          missing=0
+          if [ -z "$APIFY_TOKEN" ]; then echo "::error title=Vérification non configurée::APIFY_TOKEN manquant, configurer le secret"; missing=1; fi
+          if [ -z "$DATABASE_URL" ]; then echo "::error title=Vérification non configurée::SEED_DATABASE_URL manquant, configurer le secret"; missing=1; fi
+          if [ -z "$APIFY_ACTOR_ID" ]; then echo "::error title=Vérification non configurée::APIFY_ACTOR_ID manquant (abotapi/vinted-fr-scraper)"; missing=1; fi
+          if [ -z "$SEED_COUT_PAR_1000_CENTS" ]; then echo "::error title=Vérification non configurée::SEED_COUT_PAR_1000_CENTS manquant"; missing=1; fi
+          if [ -z "$SEED_COUT_PAR_RUN_CENTS" ]; then echo "::error title=Vérification non configurée::SEED_COUT_PAR_RUN_CENTS manquant"; missing=1; fi
+          exit $missing
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
+          APIFY_ACTOR_ID: ${{ vars.APIFY_ACTOR_ID }}
+          SEED_COUT_PAR_1000_CENTS: ${{ vars.SEED_COUT_PAR_1000_CENTS }}
+          SEED_COUT_PAR_RUN_CENTS: ${{ vars.SEED_COUT_PAR_RUN_CENTS }}
+
+      - name: Appliquer les migrations
+        if: ${{ inputs.execute }}
+        run: pnpm db:migrate
+        env:
+          DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
+
+      # Codes de sortie : 3 = arrêt dur budgétaire (11 €), 4 = arrêt sur critère (cellule sous
+      # le seuil, 0 résultat) : le job échoue et GitHub notifie.
+      - name: Mesurer le volume (dépense réelle)
+        if: ${{ inputs.execute }}
+        run: |
+          mkdir -p logs
+          set -o pipefail
+          pnpm seed:verify-volume --execute --etape "$ETAPE" \
+            | tee "logs/verify-execute-$(date -u +%Y%m%dT%H%M%SZ).txt"
+        env:
+          ETAPE: ${{ inputs.cellules }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
+          APIFY_ACTOR_ID: ${{ vars.APIFY_ACTOR_ID }}
+          SEED_COUT_PAR_1000_CENTS: ${{ vars.SEED_COUT_PAR_1000_CENTS }}
+          SEED_COUT_PAR_RUN_CENTS: ${{ vars.SEED_COUT_PAR_RUN_CENTS }}
+
+      - name: Archiver les logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-volume-logs-${{ github.run_id }}
+          path: logs/
+          if-no-files-found: ignore
+          retention-days: 90
