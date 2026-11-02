@@ -253,13 +253,14 @@ Le crawl tourne sur **GitHub Actions** (`.github/workflows/seed.yml`), jamais de
 
 Configuration à créer dans GitHub (Settings → Secrets and variables → Actions) :
 
-| Type     | Nom                        | Valeur                                                         |
-| -------- | -------------------------- | -------------------------------------------------------------- |
-| Secret   | `APIFY_TOKEN`              | token Apify                                                    |
-| Secret   | `SEED_DATABASE_URL`        | URL Postgres de production                                     |
-| Variable | `APIFY_ACTOR_ID`           | acteur retenu après comparatif                                 |
-| Variable | `SEED_COUT_PAR_1000_CENTS` | tarif réel en centimes d'euro pour 1 000 résultats (ex. 260)   |
-| Variable | `SEED_BUDGET_CENTS_MAX`    | plafond mensuel en centimes, 10000 par défaut (arrêt dur 80 %) |
+| Type     | Nom                        | Valeur                                                                    |
+| -------- | -------------------------- | ------------------------------------------------------------------------- |
+| Secret   | `APIFY_TOKEN`              | token Apify                                                               |
+| Secret   | `SEED_DATABASE_URL`        | URL Postgres de production                                                |
+| Variable | `APIFY_ACTOR_ID`           | acteur retenu après comparatif                                            |
+| Variable | `SEED_COUT_PAR_1000_CENTS` | tarif réel en centimes d'euro pour 1 000 résultats (ex. 260)              |
+| Variable | `SEED_COUT_PAR_RUN_CENTS`  | frais fixes par run de l'acteur, en centimes d'euro (ex. 5) — obligatoire |
+| Variable | `SEED_BUDGET_CENTS_MAX`    | plafond mensuel en centimes, 10000 par défaut (arrêt dur 80 %)            |
 
 Le cron ne s'exécute que depuis la branche par défaut : rien ne tourne avant le merge.
 
@@ -531,3 +532,28 @@ retirés (ambigus, non utilisés).
 
 **Prérequis durs avant tout `--execute`** : identifiants Baskets et Casques, acteur Apify choisi
 après le comparatif (section 1) et validé.
+
+### 8.11 Décisions du 2026-11-04 (fin de journée)
+
+**Acteur primaire : `abotapi/vinted-fr-scraper`** (`fetchDetails: true`). `catalogId` = sous-catégorie
+réelle, marque normalisée, adaptateur codé. `studio-amba` reste en réserve : il exige un plan
+payant ; il sera testé au passage au plan Starter (juste avant J+1 du seed), et on bascule s'il
+fonctionne mieux. Le plan Starter n'est pas pris pendant le développement.
+
+**Frais fixes par run comptés dans l'arrêt dur** (faille corrigée, prérequis bloquant de tout
+`--execute`) : chaque réservation = frais du run + résultats max × tarif ; un run sans résultat
+coûte ses frais. `SEED_COUT_PAR_RUN_CENTS` est obligatoire en `--execute`.
+
+- Effet mesuré au dry-run (hypothèse 5 c par run, 27 runs par jour au plus : 12 lots de suivi de
+  50 + 15 découvertes) : 1,35 € par jour de frais fixes. **Au rythme maximal, l'arrêt dur de 80 €
+  tombe vers le jour 26 (2,60 € / 1 000) ou 22 (3,57 € / 1 000).** Le rythme maximal suppose une
+  découverte pleine chaque jour, ce qui n'arrive que pendant le remplissage des parcs.
+- Levier sans toucher au budget : des lots de re-vérification de 100 au lieu de 50 (6 runs de
+  suivi au lieu de 12, environ 9 € par mois de frais en moins). À décider.
+
+**Backfill** : `pnpm seed:backfill-verify --amount-cents <c> --note "…"` (dry-run par défaut,
+`--execute` avec `DATABASE_URL`) saisit une dépense passée hors CLI dans `verify-YYYY-MM`. À
+exécuter sur la base de production : 24 c, « tests acteurs du 2026-11-04 » (0,236 $ facturés).
+
+**Taille absente** : la chaîne complète est testée (payload abotapi sans taille → seed → vente →
+estimation au niveau (catégorie, marque), sans erreur).

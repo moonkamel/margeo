@@ -90,7 +90,10 @@ pnpm seed:run --execute --budget-max 10000      # GitHub Actions uniquement
 - `--execute` refuse toute cellule non validée, sans `catalogId`, ou dont la marque a un alias
   non validé (`packages/scraper/seed/cellules.json`, table `BrandAlias`).
 - Variables requises en `--execute` (échec immédiat sinon) : `APIFY_TOKEN`, `APIFY_ACTOR_ID`,
-  `DATABASE_URL`, `SEED_COUT_PAR_1000_CENTS`.
+  `DATABASE_URL`, `SEED_COUT_PAR_1000_CENTS`, `SEED_COUT_PAR_RUN_CENTS` (frais fixes par run,
+  comptés dans l'arrêt dur).
+- Dépense passée hors CLI : `pnpm seed:backfill-verify --amount-cents <c> --note "…"`
+  (dry-run par défaut).
 - **Données personnelles** : le seed ne stocke aucune donnée personnelle vendeur. Les payloads
   bruts sont filtrés par `sanitizeListingPayload` (allowlist, `packages/scraper/src/sanitize.ts`)
   avant insertion en base. Toute évolution du schéma de filtrage doit être validée.
