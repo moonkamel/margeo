@@ -251,13 +251,13 @@ Le crawl tourne sur **GitHub Actions** (`.github/workflows/seed.yml`), jamais de
 
 Configuration à créer dans GitHub (Settings → Secrets and variables → Actions) :
 
-| Type     | Nom                        | Valeur                                                       |
-| -------- | -------------------------- | ------------------------------------------------------------ |
-| Secret   | `APIFY_TOKEN`              | token Apify                                                  |
-| Secret   | `SEED_DATABASE_URL`        | URL Postgres de production                                   |
-| Variable | `APIFY_ACTOR_ID`           | acteur retenu après comparatif                               |
-| Variable | `SEED_COUT_PAR_1000_CENTS` | tarif réel en centimes d'euro pour 1 000 résultats (ex. 260) |
-| Variable | `SEED_CAMPAIGN`            | ex. `seed-2026-11`                                           |
+| Type     | Nom                        | Valeur                                                         |
+| -------- | -------------------------- | -------------------------------------------------------------- |
+| Secret   | `APIFY_TOKEN`              | token Apify                                                    |
+| Secret   | `SEED_DATABASE_URL`        | URL Postgres de production                                     |
+| Variable | `APIFY_ACTOR_ID`           | acteur retenu après comparatif                                 |
+| Variable | `SEED_COUT_PAR_1000_CENTS` | tarif réel en centimes d'euro pour 1 000 résultats (ex. 260)   |
+| Variable | `SEED_BUDGET_CENTS_MAX`    | plafond mensuel en centimes, 10000 par défaut (arrêt dur 80 %) |
 
 Le cron ne s'exécute que depuis la branche par défaut : rien ne tourne avant le merge.
 
@@ -436,12 +436,10 @@ La liste des 15 cellules n'est pas figée : elle est révisée à J+14 sur ces d
 
 1. **Premier cycle** : plafond de **100 € TTC** dès le départ (il remplace 60 € et 48 €), arrêt
    dur à **80 €**, soit 80 % du plafond.
-2. **Enveloppes** : proportions 85 % pour le suivi et 15 % pour la découverte, la découverte
-   étant coupée en premier.
-   - ⚠️ **À confirmer** : 85 € + 15 € = 100 € dépasse l'arrêt dur de 80 €, et `BudgetLedger`
-     refuse une configuration où la somme des enveloppes dépasse l'arrêt dur.
-   - Proposition : appliquer les proportions aux 80 € dépensables, soit **68 € de suivi et
-     12 € de découverte**.
+2. **Enveloppes (corrigé le 2026-11-04)** : **68 € de suivi et 12 € de découverte**, soit 85 % / 15 %
+   appliqués à l'arrêt dur de 80 € (et non au plafond de 100 €). La découverte est coupée en
+   premier ; les 20 € au-delà de l'arrêt dur sont une marge contre les écarts de facturation
+   Apify et ne sont jamais dépensés. ~~85 € + 15 €~~ : incohérent avec `BudgetLedger`, abandonné.
 3. **Sens de `--budget-max`** : il devient le **plafond** (10 000 centimes), et l'arrêt dur est
    calculé à 80 % de ce plafond. Aujourd'hui, `--budget-max` fixe directement l'arrêt dur : c'est
    à modifier dans le code.
@@ -465,3 +463,37 @@ La liste des 15 cellules n'est pas figée : elle est révisée à J+14 sur ces d
       plafond. Tests en mock, puis commit.
    4. `seed:verify-volume --dry-run` sur les 3 pilotes, avec envoi du détail estimé.
    5. **Point de contrôle humain** : aucun `--execute` sans go explicite.
+
+### 8.10 Décisions du 2026-11-04 (appliquées dans le code)
+
+**Catalogues des pulls** (relevés sur vinted.fr ; l'identifiant fait foi, le libellé est cosmétique,
+le slug `jumpers-and-sweaters` est commun aux deux et ne suffit pas) :
+
+| Catalogue | Libellé Vinted                 | Cellules                |
+| --------- | ------------------------------ | ----------------------- |
+| **13**    | Sweats et sweats à capuche (F) | Sézane, Sandro, Maje    |
+| **79**    | Sweats et pulls (H)            | AMI Paris, Ralph Lauren |
+
+- **Catégorie parente crawlée entière (option a)** : sur-ensemble des sous-catégories, on filtre
+  ensuite en SQL sans re-crawl. `TrackedListing.subcategoryId` / `subcategoryLabel` sont écrits à
+  la première observation et immuables.
+- **Rattachement** : catalogue de recherche (`TrackedListing.catalogIdRecherche`, immuable) +
+  marque canonique via alias validés. Jamais par le libellé.
+- **`SubcategoryToParent`** : remplie au fil des observations (`verifie = false`), à vérifier à J+14.
+  Une annonce sans sous-catégorie, ou dont la sous-catégorie est déjà rattachée à un autre parent,
+  est écartée et signalée (« Élargissement de recherche »).
+- **Baskets et Casques** : identifiants de catalogue encore à relever (`catalogId: null`, cellules
+  non mesurables ni crawlables).
+
+**Vérification du volume** : campagne `verify-YYYY-MM`, plafond **12 €**, arrêt dur **10 €**.
+
+**Points de re-tiering à J+14** :
+
+- **Sandro** : démarré en Femmes (13). S'il sous-performe, on ajoute Sandro Hommes (79) en
+  cellule #16, sans basculer (les observations Femmes sont conservées).
+- **Ralph Lauren** : version large pour le pilote. « Polo Ralph Lauren » (premium) et « Lauren
+  Ralph Lauren » (diffuse) ont des gammes de prix disjointes : à scinder si la médiane est trop
+  dispersée.
+
+**Prérequis durs avant tout `--execute`** : identifiants Baskets et Casques, acteur Apify choisi
+après le comparatif (section 1) et validé.
