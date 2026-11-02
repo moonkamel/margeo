@@ -25,6 +25,8 @@ const ALIAS_DOWN = 'rollbacks/20261104010000_brand_alias.down.sql';
 const S2P = 'migrations/20261104020000_subcategory_to_parent/migration.sql';
 const ALIAS2 = 'migrations/20261104040000_brand_alias_sous_gammes/migration.sql';
 const ALIAS2_DOWN = 'rollbacks/20261104040000_brand_alias_sous_gammes.down.sql';
+const ALIAS3 = 'migrations/20261104050000_brand_alias_gammes_pilotes/migration.sql';
+const ALIAS3_DOWN = 'rollbacks/20261104050000_brand_alias_gammes_pilotes.down.sql';
 const S2P_DOWN = 'rollbacks/20261104020000_subcategory_to_parent.down.sql';
 
 const created: string[] = [];
@@ -154,7 +156,7 @@ describe.skipIf(!DATABASE_URL)('migration TrackedListing — base vide', () => {
     expect(sansRls.rows.map((r) => r.relname)).toEqual([]);
     // Le propriétaire (rôle de Prisma) n'est pas bloqué par RLS sans policy.
     const lecture = await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`);
-    expect(lecture.rows[0].n).toBe(34);
+    expect(lecture.rows[0].n).toBe(38);
     await client.end();
   });
 });
@@ -539,39 +541,50 @@ describe.skipIf(!DATABASE_URL)('migration SubcategoryToParent + catalogIdRecherc
   });
 });
 
-describe.skipIf(!DATABASE_URL)('migration BrandAlias — sous-gammes du 2026-11-04', () => {
+describe.skipIf(!DATABASE_URL)('migrations BrandAlias — sous-gammes du 2026-11-04', () => {
   let client: pg.Client;
 
   beforeAll(async () => {
     if (!DATABASE_URL) return;
     ({ client } = await freshDb());
-    for (const m of [INIT, TRACKED, SEED_RUN, SUBCAT, ALIAS, S2P, ALIAS2]) await apply(client, m);
+    for (const m of [INIT, TRACKED, SEED_RUN, SUBCAT, ALIAS, S2P, ALIAS2, ALIAS3])
+      await apply(client, m);
   });
   afterAll(async () => {
     await client?.end();
   });
 
-  it('5 alias ajoutés et validés ; Jordan et Yeezy absents', async () => {
+  it('9 alias ajoutés et validés ; Jordan, Yeezy, adidas Originals, Givenchy absents', async () => {
     const r = await client.query(
-      `SELECT alias, marque FROM "BrandAlias" WHERE "dateValidation" = '2026-11-04T00:00:00Z' ORDER BY alias`,
+      `SELECT alias, marque FROM "BrandAlias" WHERE "dateValidation" = '2026-11-04T00:00:00Z' ORDER BY alias COLLATE "C"`,
     );
     expect(r.rows).toEqual([
       { alias: 'Adidas Equipment', marque: 'Adidas' },
       { alias: 'Adidas Terrex', marque: 'Adidas' },
+      { alias: 'Air Force', marque: 'Nike' },
       { alias: 'Nike Air', marque: 'Nike' },
+      { alias: 'Nike SB', marque: 'Nike' },
       { alias: 'Nike x Nocta', marque: 'Nike' },
       { alias: 'Nike x Off-White', marque: 'Nike' },
+      { alias: 'adidas Stan Smith', marque: 'Adidas' },
+      { alias: 'adidas x Oamc', marque: 'Adidas' },
     ]);
     const exclus = await client.query(
-      `SELECT alias FROM "BrandAlias" WHERE lower(alias) IN ('jordan', 'yeezy', 'adidas originals')`,
+      `SELECT alias FROM "BrandAlias" WHERE lower(alias) IN ('jordan', 'yeezy', 'adidas originals', 'givenchy')`,
     );
     expect(exclus.rows).toEqual([]);
   });
 
-  it('rollback : retour aux 29 alias, réapplicable', async () => {
+  it('rollbacks : retour à 34 puis 29 alias, réapplicables', async () => {
+    const n = async () =>
+      (await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`)).rows[0].n;
+    expect(await n()).toBe(38);
+    await apply(client, ALIAS3_DOWN);
+    expect(await n()).toBe(34);
     await apply(client, ALIAS2_DOWN);
-    expect((await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`)).rows[0].n).toBe(29);
+    expect(await n()).toBe(29);
     await apply(client, ALIAS2);
-    expect((await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`)).rows[0].n).toBe(34);
+    await apply(client, ALIAS3);
+    expect(await n()).toBe(38);
   });
 });
