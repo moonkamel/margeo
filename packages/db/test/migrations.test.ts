@@ -143,6 +143,16 @@ describe.skipIf(!DATABASE_URL)('migration TrackedListing — base vide', () => {
     expect(diff.status, diff.stdout + diff.stderr).toBe(0); // 0 = aucune différence
     const tables = await client.query(`SELECT to_regclass('"TrackedListing"') AS t`);
     expect(tables.rows[0].t).toBe('"TrackedListing"');
+    // Toute table du schéma public doit avoir RLS (API Supabase fermée) : une future migration
+    // qui crée une table sans « ENABLE ROW LEVEL SECURITY » fait échouer ce test.
+    const sansRls = await client.query<{ relname: string }>(
+      `SELECT c.relname FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+       WHERE n.nspname = 'public' AND c.relkind = 'r' AND NOT c.relrowsecurity ORDER BY 1`,
+    );
+    expect(sansRls.rows.map((r) => r.relname)).toEqual([]);
+    // Le propriétaire (rôle de Prisma) n'est pas bloqué par RLS sans policy.
+    const lecture = await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`);
+    expect(lecture.rows[0].n).toBe(29);
     await client.end();
   });
 });
