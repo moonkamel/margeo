@@ -1,7 +1,10 @@
 name: Seed quotidien
 
 # Crawl de seed Phase 2b. Tourne depuis la CI, jamais depuis une session de dev.
-# Le cron GitHub est en UTC : 5 h UTC = 6 h à Paris en hiver (7 h en été).
+#
+# NE PAS « CORRIGER » EN '0 6 * * *' : le cron GitHub Actions est TOUJOURS en UTC.
+# '0 5 * * *' = 5 h UTC = 6 h à Paris en heure d'hiver (CET, UTC+1), 7 h en heure d'été
+# (CEST, UTC+2). GitHub ne gère pas de fuseau horaire ; l'écart d'une heure en été est accepté.
 on:
   schedule:
     - cron: '0 5 * * *'
