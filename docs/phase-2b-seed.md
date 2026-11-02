@@ -566,3 +566,29 @@ exécuter sur la base de production : 24 c, « tests acteurs du 2026-11-04 » (0
 
 **Taille absente** : la chaîne complète est testée (payload abotapi sans taille → seed → vente →
 estimation au niveau (catégorie, marque), sans erreur).
+
+### 8.12 Acteur retenu et calibrage du coût (2026-11-04)
+
+**Acteur unique : `abotapi/vinted-fr-scraper`.** `studio-amba/vinted-scraper-v2` est disqualifié
+définitivement : test B (plan Starter, plafond exceptionnel de 5 $) → 0 résultat pour « Nike » sur le
+catalogue 1242, alors qu'abotapi en renvoie avec le même filtre (filtre `catalogIds` mal appliqué),
+0,04 $ facturés. Test C non lancé.
+
+**Référence des frais de démarrage** : mesurés sur 3 runs de test abotapi le 2026-11-04 (1, 1 et
+2 annonces, `fetchDetails: true`) : **0,05 $ par run**, 1 démarrage facturé par run. Mémoire allouée
+non vérifiée. Apify facture le démarrage **par Go de mémoire** (studio-amba, 4 Go : 4 démarrages,
+0,04 $) : **à recontrôler au premier run de production**, et `SEED_COUT_PAR_RUN_CENTS` doit toujours
+être calibré sur un run facturé réel, jamais sur la fiche de l'acteur.
+
+**Conversion budgétaire** : 1 $ = 0,92 € (taux de calibrage conservateur, pas le taux comptable).
+`SEED_COUT_PAR_1000_CENTS=240` (2,60 $ / 1 000 avec `fetchDetails`), `SEED_COUT_PAR_RUN_CENTS=5`
+(0,05 $ × 0,92 = 4,6 c, arrondi au centime supérieur).
+
+**Dry-run final** (lots de 100, rythme maximal = parcs complets dès le jour 1 et découverte pleine
+chaque jour ; la projection simule l'épuisement CUMULÉ de l'enveloppe découverte) :
+
+| Périmètre               | Coût max / jour            | Découverte coupée | Cumul à 28 jours | Arrêt dur 80 €       |
+| ----------------------- | -------------------------- | ----------------- | ---------------- | -------------------- |
+| Vérification, 3 pilotes | 0,53 € par cellule, 1,59 € | —                 | —                | 11 € (vérification)  |
+| Seed, 3 pilotes (210)   | 0,65 € + 0,19 €            | non               | 23,52 €          | non atteint          |
+| Seed, 15 cellules (600) | 1,74 € + 0,93 €            | vers le jour 13   | 60,72 €          | non atteint (≈ j 40) |
