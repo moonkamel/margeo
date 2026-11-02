@@ -28,11 +28,11 @@
 
 ## 1. Acteur Apify — à remplir après le comparatif
 
-| Acteur                                                                         | Schéma d'entrée                                                                                                                                          | Tarif réel / 1 000 résultats                                                                                               | Champ sold natif                                                                                                                                                         | Dernier run                                             | Testé sur 1 URL            |
-| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | -------------------------- |
-| `kazkn/vinted-smart-scraper` (fiche lue + 1 run de test le 2026-11-04, 0,02 $) | `query`, `categoryId`, `brandIds`, `sizeIds`, `maxItems` 1–300 ; **aucun paramètre de page ou d'offset** ; **plan Free plafonné à 30 résultats par run** | 2,50 $ (Free), 2,25 $ (Bronze), 2,125 $ (Silver), 1,875 $ (Gold et au-delà) + 0,02 $ par démarrage (Free)                  | **`catalog_id` absent** du payload (test réel) ; mode `SELL_THROUGH_TRACKER`                                                                                             | 2026-11-02 (126 494 runs, 55 utilisateurs sur 30 jours) | oui (1242 Nike)            |
-| `abotapi/vinted-fr-scraper` (tests du 2026-11-04 : 3 runs, 0,16 $)             | `queries`, `categoryId`, `brandId`, `maxItems`, `maxPages`, `fetchDetails`, `incrementalMode`/`emitExpired`                                              | 1,80 $ / 1 000 résultats + 0,80 $ / 1 000 détails + 0,05 $ par run (Free) ; **2,60 $ / 1 000 avec `fetchDetails`**, mesuré | **`catalogId` = sous-catégorie réelle avec `fetchDetails: true`** (recherche sur 13 → 529 « Pulls d'hiver », 194 « Cardigans ») ; absent sans ; `isReserved`, `isClosed` | 2026-11-02                                              | oui (1242 Nike, 13 Sézane) |
-| `studio-amba/vinted-scraper-v2` (fiche lue, run refusé : plan payant requis)   | modes `index`/`full`/`watch`, `catalogIds`, `watchItemIds`, `missesBeforeVanished`                                                                       | 5,00 $ / 1 000 + 0,01 $ par run                                                                                            | `soldSignal` annoncé, à tester (tests B, C)                                                                                                                              | 2026-11-02 (0 utilisateur sur 30 jours)                 | non                        |
+| Acteur                                                                         | Schéma d'entrée                                                                                                                                          | Tarif réel / 1 000 résultats                                                                                                                                                                | Champ sold natif                                                                                                                                                         | Dernier run                                             | Testé sur 1 URL            |
+| ------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------- | -------------------------- |
+| `kazkn/vinted-smart-scraper` (fiche lue + 1 run de test le 2026-11-04, 0,02 $) | `query`, `categoryId`, `brandIds`, `sizeIds`, `maxItems` 1–300 ; **aucun paramètre de page ou d'offset** ; **plan Free plafonné à 30 résultats par run** | 2,50 $ (Free), 2,25 $ (Bronze), 2,125 $ (Silver), 1,875 $ (Gold et au-delà) + 0,02 $ par démarrage (Free)                                                                                   | **`catalog_id` absent** du payload (test réel) ; mode `SELL_THROUGH_TRACKER`                                                                                             | 2026-11-02 (126 494 runs, 55 utilisateurs sur 30 jours) | oui (1242 Nike)            |
+| `abotapi/vinted-fr-scraper` (tests du 2026-11-04 : 3 runs, 0,16 $)             | `queries`, `categoryId`, `brandId`, `maxItems`, `maxPages`, `fetchDetails`, `incrementalMode`/`emitExpired`                                              | Free : 1,80 $ / 1 000 résultats + 0,80 $ / 1 000 détails + 0,05 $ par run. **Starter (mesuré en production, 8.15) : 1,67 $ + 0,70 $ = 2,37 $ / 1 000 avec `fetchDetails` + 0,04 $ par run** | **`catalogId` = sous-catégorie réelle avec `fetchDetails: true`** (recherche sur 13 → 529 « Pulls d'hiver », 194 « Cardigans ») ; absent sans ; `isReserved`, `isClosed` | 2026-11-02                                              | oui (1242 Nike, 13 Sézane) |
+| `studio-amba/vinted-scraper-v2` (fiche lue, run refusé : plan payant requis)   | modes `index`/`full`/`watch`, `catalogIds`, `watchItemIds`, `missesBeforeVanished`                                                                       | 5,00 $ / 1 000 + 0,01 $ par run                                                                                                                                                             | `soldSignal` annoncé, à tester (tests B, C)                                                                                                                              | 2026-11-02 (0 utilisateur sur 30 jours)                 | non                        |
 
 Critères, dans l'ordre :
 
@@ -548,7 +548,8 @@ fonctionne mieux. Le plan Starter n'est pas pris pendant le développement.
 `--execute`) : chaque réservation = frais du run + résultats max × tarif ; un run sans résultat
 coûte ses frais. `SEED_COUT_PAR_RUN_CENTS` est obligatoire en `--execute`.
 
-- Effet mesuré au dry-run (hypothèse 5 c par run, 27 runs par jour au plus : 12 lots de suivi de
+- Effet mesuré au dry-run (hypothèses de tarif de l'époque ; tarif réel calibré en 8.15 —
+  hypothèse 5 c par run, 27 runs par jour au plus : 12 lots de suivi de
   50 + 15 découvertes) : 1,35 € par jour de frais fixes. **Au rythme maximal, l'arrêt dur de 80 €
   tombe vers le jour 26 (2,60 € / 1 000) ou 22 (3,57 € / 1 000).** Le rythme maximal suppose une
   découverte pleine chaque jour, ce qui n'arrive que pendant le remplissage des parcs.
@@ -575,14 +576,16 @@ catalogue 1242, alors qu'abotapi en renvoie avec le même filtre (filtre `catalo
 0,04 $ facturés. Test C non lancé.
 
 **Référence des frais de démarrage** : mesurés sur 3 runs de test abotapi le 2026-11-04 (1, 1 et
-2 annonces, `fetchDetails: true`) : **0,05 $ par run**, 1 démarrage facturé par run. Mémoire allouée
+2 annonces, `fetchDetails: true`) : **0,05 $ par run** sur le plan Free, 1 démarrage facturé par run.
+**Corrigé en 8.15 : 0,04 $ par run sur le plan Starter (1 Go), mesuré en production.** Mémoire allouée
 non vérifiée. Apify facture le démarrage **par Go de mémoire** (studio-amba, 4 Go : 4 démarrages,
 0,04 $) : **à recontrôler au premier run de production**, et `SEED_COUT_PAR_RUN_CENTS` doit toujours
 être calibré sur un run facturé réel, jamais sur la fiche de l'acteur.
 
 **Conversion budgétaire** : 1 $ = 0,92 € (taux de calibrage conservateur, pas le taux comptable).
-`SEED_COUT_PAR_1000_CENTS=240` (2,60 $ / 1 000 avec `fetchDetails`), `SEED_COUT_PAR_RUN_CENTS=5`
-(0,05 $ × 0,92 = 4,6 c, arrondi au centime supérieur).
+`SEED_COUT_PAR_1000_CENTS=240` (calibré sur le tarif Free de 2,60 $ / 1 000 avec `fetchDetails`),
+`SEED_COUT_PAR_RUN_CENTS=5` (0,05 $ × 0,92 = 4,6 c, arrondi au centime supérieur). Ces deux valeurs
+sont conservées volontairement au-dessus du tarif Starter réel (8.15) : marge de prudence.
 
 **Dry-run final** (lots de 100, rythme maximal = parcs complets dès le jour 1 et découverte pleine
 chaque jour ; la projection simule l'épuisement CUMULÉ de l'enveloppe découverte) :
@@ -643,7 +646,8 @@ Corrections (code) :
 - **Coût enregistré** : max(estimation, coût rapporté par Apify) ; run coupé ou en échec =
   réservation maximale. Une sous-estimation est plus dangereuse qu'une surestimation.
 - **Vérification sans `fetchDetails`** (comptage par `brandTitle`) ; le tarif de 240 c / 1 000
-  (détails inclus) est conservé pour la réservation : le coût réel sera plus bas (~1,80 $ / 1 000).
+  (détails inclus) est conservé pour la réservation : le coût réel est plus bas (**1,67 $ / 1 000**
+  sur Starter, mesuré : 0,4575 $ pour 250 résultats + 1 démarrage ; voir 8.15).
 - **RLS** activé sur toutes les tables (base de production le 2026-11-04 + migration) ; le test de
   migration échoue si une table future n'a pas RLS.
 
@@ -663,3 +667,60 @@ cellule (1,95 € pour les 3 pilotes, 9,75 € pour les 15, sous l'arrêt dur de
 2. **La pureté de la recherche varie selon la marque** (annonces « style Sézane », marques
    copiant l'esthétique…). **Plan B** : si Sézane sort INCOMPLET ou sous le seuil à 250, relance de
    cette seule cellule à 300 (`--max-items 300`).
+
+### 8.15 Tarif calibré sur le plan Starter et limite structurelle de la taille (2026-11-04)
+
+**Tarif réel d'abotapi sur le plan Starter**, mesuré sur 4 runs de production (3 runs de vérification
+de 250 résultats, 1 run de seed J+1 de 5 annonces avec détails) :
+
+| Poste                     | Tarif Starter      | Mesure                                          |
+| ------------------------- | ------------------ | ----------------------------------------------- |
+| Résultat de recherche     | 1,67 $ / 1 000     | 250 résultats + 1 démarrage = 0,4575 $          |
+| Détail (`fetchDetails`)   | 0,70 $ / 1 000     | 5 résultats + 5 détails + 1 démarrage = 0,052 $ |
+| **Total avec détails**    | **2,37 $ / 1 000** | soit ≈ 218 c€ / 1 000 à 0,92 €                  |
+| Démarrage d'un run (1 Go) | 0,04 $             | ≈ 3,7 c€                                        |
+
+`SEED_COUT_PAR_1000_CENTS=240` et `SEED_COUT_PAR_RUN_CENTS=5` restent au-dessus de ces valeurs :
+la réservation surestime d'environ 10 %, ce qui est voulu. **Les prochains calibrages de budget
+partent de 2,37 $ / 1 000 et 0,04 $ par run**, plus jamais de la fiche de l'acteur ou du tarif Free.
+
+**Limite structurelle de l'acteur : la taille des vêtements.** abotapi ne renvoie **aucune taille**
+sur les vêtements (0 / 5 au test du 2026-11-04, 0 / 5 au seed J+1 sur Sézane, `fetchDetails`
+compris), alors que Vinted l'expose (titres « Taille M », « Gr. S ») et qu'abotapi la renvoie sur les
+baskets (« 42 »). Ce n'est pas un incident ponctuel mais une limite de l'acteur :
+
+- les cellules de vêtements (catalogues 13 et 79) sont estimées au niveau **(catégorie, marque)**,
+  jamais (catégorie, marque, taille) ;
+- passer à la taille sur ces cellules demandera un autre acteur, ou un complément de données
+  (lecture de la taille dans le titre, à valider) ; à rouvrir avant de promettre ce niveau.
+
+Également consigné dans le README (« Limites connues de l'acteur retenu »).
+
+### 8.16 Test de pipeline de 15 jours et checkpoint J+15 (décision du 2026-11-04)
+
+**Périmètre (option 1)** : 3 cellules seulement — Baskets (H)|Nike et Baskets (H)|Adidas (1242),
+Sweats (F)|Sézane (13) — toutes en **secondary, cible 30** (remplissage en ~6 jours à 5 découvertes
+par jour ; une cible de 70 ne serait atteinte qu'à J+14). Les 12 autres cellules restent à
+`valide: false` et sont ignorées par `--execute`. Plafond `SEED_BUDGET_CENTS_MAX=1500` (arrêt dur 12 €,
+découverte 1,80 €). Lancement manuel quotidien de « Seed quotidien » ; `SEED_CRON_ACTIF` absente.
+
+**J+1 (Sézane seule, 2026-11-02)** : `COMPLETED`, 5 annonces découvertes (4 sous-catégories, toutes
+rattachées au parent 13), 0 erreur, 0,052 $ facturés, aucun payload stocké avec donnée vendeur,
+taille absente sur les 5. **J+2** : les 3 cellules, sans filtre.
+
+**Grille du checkpoint J+15 :**
+
+| Métrique                                    | OK     | Alerte            |
+| ------------------------------------------- | ------ | ----------------- |
+| Ventes observées (3 cellules cumulées)      | ≥ 4    | < 2               |
+| Ventes par cellule                          | ≥ 1    | 0 sur une cellule |
+| Faux positifs `SOLD`                        | 0      | ≥ 1               |
+| Prix `SOLD` cohérents (± 30 % de l'affiché) | ≥ 80 % | < 60 %            |
+| Erreurs de pipeline (crash, timeout)        | 0      | ≥ 1               |
+
+- **OK** : ajout d'environ 30 $ de crédit Apify, seed complet 15 cellules en décembre (identifiants
+  Baskets Femmes et « Casques audio et écouteurs » à relever d'ici là).
+- **Alerte** : arrêt, analyse des logs ; un faux positif `SOLD` se corrige avant toute nouvelle
+  dépense, un taux de vente trop bas fait revoir le tiering ou les cellules.
+
+Outil de suivi : `scripts/suivi-quotidien/` (lecture seule, hors du code du seed).

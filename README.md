@@ -99,6 +99,18 @@ pnpm seed:run --execute --budget-max 10000      # GitHub Actions uniquement
   avant insertion en base. Toute évolution du schéma de filtrage doit être validée.
 - Rollbacks de migration : `infra/rollbacks/*.down.sql` (à exécuter avec `psql --single-transaction`).
 
+## Limites connues de l'acteur retenu (`abotapi/vinted-fr-scraper`)
+
+- **Pas de taille sur les vêtements** : aucune taille renvoyée sur les annonces de vêtements, même
+  avec `fetchDetails` (0 / 10 annonces Sézane testées), alors qu'elle l'est sur les baskets. Les
+  cellules de vêtements sont donc estimées au niveau (catégorie, marque), jamais (catégorie,
+  marque, taille). Détails : `docs/phase-2b-seed.md`, section 8.15.
+- **`fetchDetails` lent** : ~1 s par annonce, avec des pics à 35 s. Runs asynchrones obligatoires
+  (`ApifyAsyncRunner`), jamais l'endpoint synchrone limité à 300 s.
+- **Pas de compteur total** : une recherche plafonnée à N résultats ne dit pas combien d'annonces
+  existent ; la vérification du volume mesure un plancher.
+- **Tarif Starter mesuré** : 2,37 $ / 1 000 avec détails, 0,04 $ par run (1 Go de mémoire).
+
 ## TODO avant ouverture commerciale
 
 - [ ] **Vérifier la grille Vinted Pro** (commission forfaitaire 5 €/vente retenue, sources
