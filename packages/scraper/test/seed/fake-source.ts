@@ -6,6 +6,22 @@ import type {
   SeedSource,
 } from '../../src/seed/index.js';
 
+/** Catalogue parent de test et sous-catégorie feuille par défaut. */
+export const CATALOGUE_TEST = 100;
+export const SOUS_CATEGORIE_TEST = 501;
+
+export function cellule(categorie: string, marque: string, o: Partial<Cellule> = {}): Cellule {
+  return {
+    categorie,
+    catalogId: CATALOGUE_TEST,
+    marque,
+    taille: null,
+    tier: 'tertiary',
+    cibleActives: 20,
+    ...o,
+  };
+}
+
 export function listing(
   overrides: Partial<NormalizedListing> & { externalId: string },
 ): NormalizedListing {
@@ -36,6 +52,8 @@ export class FakeSource implements SeedSource {
   catalogue = new Map<string, NormalizedListing[]>();
   appels: { type: 'recheck' | 'discover'; taille: number }[] = [];
   failNext: Error | null = null;
+  /** Sous-catégorie renvoyée par annonce (défaut SOUS_CATEGORIE_TEST ; null = absente). */
+  sousCategorie = new Map<string, number | null>();
   /** Facturation simulée : par défaut, un résultat par item renvoyé. */
   surfacturation = 0;
 
@@ -80,6 +98,9 @@ export class FakeSource implements SeedSource {
     const listings: DiscoveredListing[] = items.map((l) => ({
       listing: l,
       payload: { raw: l.externalId },
+      subcategoryId: this.sousCategorie.has(l.externalId)
+        ? (this.sousCategorie.get(l.externalId) ?? null)
+        : SOUS_CATEGORIE_TEST,
     }));
     return { listings, resultatsFactures: items.length + this.surfacturation };
   }

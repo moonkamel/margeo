@@ -3,6 +3,7 @@ import type {
   Cellule,
   NewTracked,
   ObservationInput,
+  SubcategoryMapping,
   SeedRepository,
   SeedRunSummary,
   SeedTx,
@@ -39,6 +40,14 @@ function txAdapter(tx: Tx): SeedTx {
         where: { trackedListingId },
         create: { ...data, plateforme: 'VINTED', trackedListingId },
         update: data,
+      });
+    },
+    async recordSubcategory(m: SubcategoryMapping) {
+      // Jamais d'écrasement : la première correspondance observée fait foi jusqu'à vérification.
+      await tx.subcategoryToParent.upsert({
+        where: { subcategoryId: m.subcategoryId },
+        create: m,
+        update: {},
       });
     },
   };
@@ -107,7 +116,11 @@ export class PrismaSeedRepository implements SeedRepository {
 
   async listToRecheck(before: Date, limit: number) {
     const rows = await this.prisma.trackedListing.findMany({
-      where: { statut: 'ACTIVE', derniereVerifAt: { lt: before } },
+      where: {
+        statut: 'ACTIVE',
+        catalogIdRecherche: { not: null },
+        derniereVerifAt: { lt: before },
+      },
       orderBy: { derniereVerifAt: 'asc' },
       take: limit,
     });
@@ -115,17 +128,26 @@ export class PrismaSeedRepository implements SeedRepository {
   }
 
   async countActive(cellule: Cellule) {
-    // Comparaison insensible à la casse, comme matchesCellule.
+    // La marque stockée est la marque canonique de la cellule (rattachement à la découverte).
     return this.prisma.trackedListing.count({
       where: {
         statut: 'ACTIVE',
-        categorie: { equals: cellule.categorie, mode: 'insensitive' },
+        catalogIdRecherche: cellule.catalogId,
         marque: { equals: cellule.marque, mode: 'insensitive' },
         ...(cellule.taille === null
           ? {}
           : { taille: { equals: cellule.taille, mode: 'insensitive' } }),
       },
     });
+  }
+
+  async subcategoryParents(ids: readonly number[]) {
+    if (ids.length === 0) return new Map<number, number>();
+    const rows = await this.prisma.subcategoryToParent.findMany({
+      where: { subcategoryId: { in: [...ids] } },
+      select: { subcategoryId: true, parentId: true },
+    });
+    return new Map(rows.map((r) => [r.subcategoryId, r.parentId]));
   }
 
   async trackedExternalIds(externalIds: readonly string[]) {

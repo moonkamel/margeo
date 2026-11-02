@@ -6,3 +6,5 @@ export * from './prisma-repository.js';
 export * from './apify-source.js';
 export * from './config.js';
 export * from './brand-alias.js';
+export * from './campagne.js';
+export * from './dry-run.js';

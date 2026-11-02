@@ -21,13 +21,19 @@ interface RunRow {
 
 interface State {
   tracked: Map<string, TrackedState>;
+  sousCategories: Map<number, { parentId: number; libelle: string }>;
   observations: ObservationInput[];
   ventes: Map<string, SoldProjection>;
 }
 
 /** Dépôt en mémoire avec vraie sémantique transactionnelle (tout ou rien) et injection de pannes. */
 export class MemoryRepo implements SeedRepository {
-  state: State = { tracked: new Map(), observations: [], ventes: new Map() };
+  state: State = {
+    tracked: new Map(),
+    sousCategories: new Map(),
+    observations: [],
+    ventes: new Map(),
+  };
   runs: RunRow[] = [];
   spendLog: { envelope: string; milli: number }[] = [];
   /** Panne simulée : appelée avant chaque écriture, peut lever. */
@@ -81,7 +87,9 @@ export class MemoryRepo implements SeedRepository {
   async listToRecheck(before: Date, limit: number) {
     if (this.failListToRecheck) throw new Error('base indisponible');
     return [...this.state.tracked.values()]
-      .filter((t) => t.statut === 'ACTIVE' && t.derniereVerifAt < before)
+      .filter(
+        (t) => t.statut === 'ACTIVE' && t.catalogIdRecherche !== null && t.derniereVerifAt < before,
+      )
       .sort((a, b) => a.derniereVerifAt.getTime() - b.derniereVerifAt.getTime())
       .slice(0, limit)
       .map((t) => ({ ...t }));
@@ -92,10 +100,19 @@ export class MemoryRepo implements SeedRepository {
     return [...this.state.tracked.values()].filter(
       (t) =>
         t.statut === 'ACTIVE' &&
-        n(t.categorie) === n(c.categorie) &&
+        t.catalogIdRecherche === c.catalogId &&
         n(t.marque) === n(c.marque) &&
         (c.taille === null || n(t.taille) === n(c.taille)),
     ).length;
+  }
+
+  async subcategoryParents(ids: readonly number[]) {
+    const m = new Map<number, number>();
+    for (const id of ids) {
+      const v = this.state.sousCategories.get(id);
+      if (v) m.set(id, v.parentId);
+    }
+    return m;
   }
 
   async trackedExternalIds(ids: readonly string[]) {
@@ -106,6 +123,7 @@ export class MemoryRepo implements SeedRepository {
   async transaction<T>(fn: (tx: SeedTx) => Promise<T>): Promise<T> {
     const draft: State = {
       tracked: new Map([...this.state.tracked].map(([k, v]) => [k, { ...v }])),
+      sousCategories: new Map(this.state.sousCategories),
       observations: [...this.state.observations],
       ventes: new Map(this.state.ventes),
     };
@@ -133,6 +151,11 @@ export class MemoryRepo implements SeedRepository {
       async writeSoldProjection(s) {
         guard('writeSoldProjection', s);
         draft.ventes.set(s.trackedListingId, s);
+      },
+      async recordSubcategory(m) {
+        guard('recordSubcategory', m);
+        if (!draft.sousCategories.has(m.subcategoryId))
+          draft.sousCategories.set(m.subcategoryId, { parentId: m.parentId, libelle: m.libelle });
       },
     };
     const result = await fn(tx); // si fn lève, le brouillon est abandonné

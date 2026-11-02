@@ -32,7 +32,8 @@ jobs:
       DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
       APIFY_ACTOR_ID: ${{ vars.APIFY_ACTOR_ID }}
       SEED_COUT_PAR_1000_CENTS: ${{ vars.SEED_COUT_PAR_1000_CENTS }}
-      SEED_CAMPAIGN: ${{ vars.SEED_CAMPAIGN }}
+      # Plafond mensuel en centimes ; arrêt dur à 80 % (8 000 = 80 €), campagne seed-YYYY-MM auto.
+      SEED_BUDGET_CENTS_MAX: ${{ vars.SEED_BUDGET_CENTS_MAX || '10000' }}
     steps:
       # Échec immédiat et explicite si la configuration est absente : aucun install, aucun appel.
       - name: Vérifier la configuration
@@ -56,11 +57,12 @@ jobs:
       - name: Appliquer les migrations
         run: pnpm db:migrate
 
-      # Code de sortie 3 = arrêt dur budgétaire (48 €) : le job échoue, GitHub notifie.
-      - name: Lancer le seed (arrêt dur à 48 €)
+      # seed:run est en dry-run par défaut : --execute est obligatoire pour dépenser.
+      # Code de sortie 3 = arrêt dur budgétaire (80 % du plafond) : le job échoue, GitHub notifie.
+      - name: Lancer le seed (arrêt dur à 80 % du plafond)
         run: |
           mkdir -p logs
-          pnpm seed:run --budget-max 4800 --budget-suivi 3000 --budget-decouverte 1800 \
+          pnpm seed:run --execute --budget-max "$SEED_BUDGET_CENTS_MAX" \
             --log-file "$GITHUB_WORKSPACE/logs/seed-$(date -u +%Y%m%dT%H%M%SZ).jsonl" \
             ${CELLULE:+--cellule "$CELLULE"}
         env:

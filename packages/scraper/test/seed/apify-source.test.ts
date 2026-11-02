@@ -2,7 +2,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { setupServer } from 'msw/node';
 import { ApifyDriver } from '../../src/index.js';
-import { ApifySeedSource } from '../../src/seed/index.js';
+import { ApifySeedSource, subcategoryIdOf } from '../../src/seed/index.js';
+import { cellule } from './fake-source.js';
 import { item } from '../load-fixture.js';
 
 const BASE = 'https://api.apify.test';
@@ -69,20 +70,39 @@ describe('ApifySeedSource.recheck — lot en un seul run', () => {
 });
 
 describe('ApifySeedSource.discover', () => {
-  it('plafonne maxItems et ne garde que les items normalisables', async () => {
+  it('recherche sur le catalogue exact, plafonne maxItems, garde les items normalisables', async () => {
     let body: unknown;
     server.use(
       http.post(ENDPOINT, async ({ request }) => {
         body = await request.json();
-        return HttpResponse.json([item('api-sold'), item('flat-active'), item('no-price')]);
+        return HttpResponse.json([item('api-active'), item('flat-active'), item('no-price')]);
       }),
     );
     const { listings, resultatsFactures } = await source().discover(
-      { categorie: 'Baskets', marque: 'Nike', taille: null },
+      cellule('Sweats et pulls (H)', 'Ralph Lauren', { catalogId: 79 }),
       5,
     );
     expect(body).toMatchObject({ maxItems: 5 });
+    const searchUrl = new URL((body as { startUrls: { url: string }[] }).startUrls[0]?.url ?? '');
+    expect(searchUrl.searchParams.getAll('catalog[]')).toEqual(['79']);
+    expect(searchUrl.searchParams.get('search_text')).toBe('Ralph Lauren');
     expect(listings).toHaveLength(2);
+    // Sous-catégorie lue dans le payload (catalog_id), null si absente.
+    expect(listings.map((l) => l.subcategoryId)).toEqual([257, null]);
     expect(resultatsFactures).toBe(3);
+  });
+});
+
+describe('subcategoryIdOf', () => {
+  it.each([
+    [{ catalog_id: 1811 }, 1811],
+    [{ catalog_id: '1811' }, 1811],
+    [{ catalog: { id: 79 } }, 79],
+    [{ catalog_id: 0 }, null],
+    [{ catalog_id: 'x' }, null],
+    [{}, null],
+    [null, null],
+  ])('%j → %s', (raw, attendu) => {
+    expect(subcategoryIdOf(raw)).toBe(attendu);
   });
 });

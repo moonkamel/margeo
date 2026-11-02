@@ -1,10 +1,25 @@
 import type { ApifyDriver } from '../drivers/apify.js';
 import { isClosedPayload, isSoldPayload } from '../detection.js';
 import { normalizeVintedItem } from '../normalize.js';
-import { parseVintedItemUrl } from '../url.js';
+import { buildCellSearchUrl, parseVintedItemUrl } from '../url.js';
 import type { Cellule, DiscoveredListing, RecheckResult, SeedSource } from './types.js';
 
-type ApifyLike = Pick<ApifyDriver, 'fetchListingsRaw' | 'searchRaw'>;
+type ApifyLike = Pick<ApifyDriver, 'fetchListingsRaw' | 'searchRawUrl'>;
+
+/** Sous-catégorie (catalogue feuille) d'un item brut, ou null si absente. */
+export function subcategoryIdOf(raw: unknown): number | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  const nested = r['catalog'];
+  const v =
+    r['catalog_id'] ??
+    r['catalogId'] ??
+    (typeof nested === 'object' && nested !== null
+      ? (nested as Record<string, unknown>)['id']
+      : undefined);
+  const n = typeof v === 'string' && /^\d+$/.test(v) ? Number(v) : v;
+  return typeof n === 'number' && Number.isInteger(n) && n > 0 ? n : null;
+}
 
 const idOf = (raw: unknown): string | null => {
   if (typeof raw !== 'object' || raw === null) return null;
@@ -48,17 +63,16 @@ export class ApifySeedSource implements SeedSource {
   }
 
   async discover(cellule: Cellule, maxItems: number) {
-    const items = await this.driver.searchRaw(
-      cellule.categorie,
-      cellule.marque,
-      cellule.taille,
+    const items = await this.driver.searchRawUrl(
+      buildCellSearchUrl(cellule.catalogId, cellule.marque, cellule.taille),
       maxItems,
     );
     const now = this.now();
     const listings: DiscoveredListing[] = [];
     for (const raw of items) {
       const n = normalizeVintedItem(raw, now);
-      if (n.ok) listings.push({ listing: n.listing, payload: raw });
+      if (n.ok)
+        listings.push({ listing: n.listing, payload: raw, subcategoryId: subcategoryIdOf(raw) });
     }
     return { listings, resultatsFactures: items.length };
   }

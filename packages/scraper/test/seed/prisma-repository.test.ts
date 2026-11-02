@@ -12,7 +12,7 @@ import {
   type SeedTx,
 } from '../../src/seed/index.js';
 import { ALIAS_VALIDES } from './alias-reference.js';
-import { FakeSource, listing } from './fake-source.js';
+import { cellule, FakeSource, listing, SOUS_CATEGORIE_TEST } from './fake-source.js';
 
 /** Intégration sur Postgres réel : base temporaire migrée par `prisma migrate deploy`. */
 const DATABASE_URL = process.env['DATABASE_URL'];
@@ -52,7 +52,7 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
     await admin.end();
   });
 
-  const cellules = [{ categorie: 'Baskets', marque: 'Nike', taille: null }];
+  const cellules = [cellule('Baskets', 'Nike')];
 
   it('alias de marques migrés = référence validée de la section 7, ambigus non rattachés', async () => {
     const rows = await new PrismaSeedRepository(prisma).loadBrandAliases();
@@ -115,6 +115,21 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
       externalId: 'p1',
     });
     expect(p1.observations).toHaveLength(2);
+    expect(p1).toMatchObject({
+      catalogIdRecherche: 100,
+      subcategoryId: SOUS_CATEGORIE_TEST,
+      subcategoryLabel: 'Baskets',
+    });
+    expect(
+      await prisma.subcategoryToParent.findUnique({
+        where: { subcategoryId: SOUS_CATEGORIE_TEST },
+      }),
+    ).toEqual({
+      subcategoryId: SOUS_CATEGORIE_TEST,
+      parentId: 100,
+      libelle: 'Baskets',
+      verifie: false,
+    });
 
     const runs = await prisma.seedRun.findMany({
       where: { campagne: 'integ' },
@@ -186,6 +201,38 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
     });
     expect(q2.statut).toBe('SOLD');
     expect(q2.vente).not.toBeNull();
+  });
+
+  it('SubcategoryToParent : jamais écrasée, parents lus en lot', async () => {
+    const repo = new PrismaSeedRepository(prisma);
+    await repo.transaction((tx) =>
+      tx.recordSubcategory({ subcategoryId: 9001, parentId: 13, libelle: 'Cardigans' }),
+    );
+    await repo.transaction((tx) =>
+      tx.recordSubcategory({ subcategoryId: 9001, parentId: 79, libelle: 'Autre' }),
+    );
+    expect(await repo.subcategoryParents([9001, 9002])).toEqual(new Map([[9001, 13]]));
+    expect(await repo.subcategoryParents([])).toEqual(new Map());
+  });
+
+  it('re-vérification : les annonces hors seed (catalogIdRecherche NULL) ne sont pas listées', async () => {
+    await prisma.trackedListing.create({
+      data: {
+        externalId: 'hors-seed',
+        url: 'https://www.vinted.fr/items/hors-seed-x',
+        categorie: 'Baskets',
+        marque: 'Nike',
+        prixInitialCents: 1,
+        prixCourantCents: 1,
+        etat: 'BON',
+        premiereVuAt: new Date(0),
+        derniereVuAt: new Date(0),
+        derniereVerifAt: new Date(0),
+      },
+    });
+    const liste = await new PrismaSeedRepository(prisma).listToRecheck(new Date(clock), 1000);
+    expect(liste.map((t) => t.externalId)).not.toContain('hors-seed');
+    expect(liste.every((t) => t.catalogIdRecherche !== null)).toBe(true);
   });
 
   it('hard stop persistant : une campagne à 48 € ne lance plus aucun appel', async () => {

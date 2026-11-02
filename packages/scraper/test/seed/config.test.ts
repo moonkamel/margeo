@@ -2,7 +2,14 @@ import { mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { loadCellules, requireSeedEnv, SeedConfigError } from '../../src/seed/index.js';
+import {
+  BrandResolver,
+  cellulesExecutables,
+  loadCellules,
+  readCellules,
+  requireSeedEnv,
+  SeedConfigError,
+} from '../../src/seed/index.js';
 
 const dir = mkdtempSync(join(tmpdir(), 'seed-'));
 const file = (content: unknown) => {
@@ -31,31 +38,125 @@ describe('requireSeedEnv — fail fast', () => {
   });
 });
 
-describe('loadCellules', () => {
-  const cellules = [
-    { categorie: 'Baskets', marque: 'Nike', taille: null, valide: true },
-    { categorie: 'Baskets', marque: 'Adidas', valide: false },
-  ];
+const c = (o: Record<string, unknown> = {}) => ({
+  categorie: 'Sweats et pulls (H)',
+  catalogId: 79,
+  marque: 'AMI Paris',
+  taille: null,
+  tier: 'tertiary',
+  cibleActives: 20,
+  valide: true,
+  ...o,
+});
 
-  it('refuse toute cellule non validée', () => {
-    expect(() => loadCellules(file({ cellules }))).toThrow(/non validées.*Adidas/);
+describe('readCellules — schéma', () => {
+  it.each([
+    ['priority', 70],
+    ['secondary', 30],
+    ['tertiary', 20],
+  ])('tier %s ↔ cibleActives %i accepté', (tier, cibleActives) => {
+    expect(readCellules(file({ cellules: [c({ tier, cibleActives })] }))).toHaveLength(1);
   });
-  it('filtre sur une seule cellule (lancement J+1)', () => {
-    expect(loadCellules(file({ cellules }), 'baskets|NIKE')).toEqual([
-      { categorie: 'Baskets', marque: 'Nike', taille: null },
+
+  it.each([
+    ['priority', 30],
+    ['secondary', 70],
+    ['tertiary', 21],
+  ])('tier %s avec cibleActives %i → refusé', (tier, cibleActives) => {
+    expect(() => readCellules(file({ cellules: [c({ tier, cibleActives })] }))).toThrow(
+      /cibleActives ne correspond pas au tier/,
+    );
+  });
+
+  it.each(['tier', 'cibleActives', 'valide', 'catalogId'])('champ %s obligatoire', (champ) => {
+    const sans = Object.fromEntries(Object.entries(c()).filter(([k]) => k !== champ));
+    expect(() => readCellules(file({ cellules: [sans] }))).toThrow(SeedConfigError);
+  });
+
+  it('tier inconnu → refusé', () => {
+    expect(() => readCellules(file({ cellules: [c({ tier: 'gold' })] }))).toThrow(SeedConfigError);
+  });
+
+  it('cellule en double (même catalogue et marque, casse ignorée) → refusé', () => {
+    expect(() =>
+      readCellules(file({ cellules: [c(), c({ marque: 'ami paris', categorie: 'Autre' })] })),
+    ).toThrow(/en double/);
+  });
+
+  it('fichier vide → erreur de configuration', () => {
+    expect(() => readCellules(file({ cellules: [] }))).toThrow(SeedConfigError);
+  });
+
+  it('filtre par libellé ou par identifiant de catalogue (lancement J+1)', () => {
+    const p = file({ cellules: [c(), c({ marque: 'Ralph Lauren' })] });
+    expect(readCellules(p, 'sweats et pulls (h)|ami paris').map((x) => x.marque)).toEqual([
+      'AMI Paris',
     ]);
-  });
-  it('filtre sans correspondance → erreur', () => {
-    expect(() => loadCellules(file({ cellules }), 'Robes|Zara')).toThrow(SeedConfigError);
-  });
-  it('fichier invalide → erreur de configuration', () => {
-    expect(() => loadCellules(file({ cellules: [] }))).toThrow(SeedConfigError);
+    expect(readCellules(p, '79|Ralph Lauren').map((x) => x.marque)).toEqual(['Ralph Lauren']);
+    expect(() => readCellules(p, 'Robes|Zara')).toThrow(/Aucune cellule/);
   });
 });
 
-describe('seed/cellules.json (proposition)', () => {
-  it('15 cellules, 3 catégories × 5 marques, aucune validée tant que le go n’est pas donné', () => {
-    const path = new URL('../../seed/cellules.json', import.meta.url).pathname;
-    expect(() => loadCellules(path)).toThrow(/non validées/);
+describe('cellulesExecutables — mode --execute', () => {
+  it('refuse une cellule non validée', () => {
+    expect(() =>
+      loadCellules(file({ cellules: [c(), c({ marque: 'X', valide: false })] })),
+    ).toThrow(/X : non validée/);
+  });
+
+  it('refuse une cellule sans identifiant de catalogue', () => {
+    expect(() => loadCellules(file({ cellules: [c({ catalogId: null })] }))).toThrow(
+      /identifiant de catalogue inconnu/,
+    );
+  });
+
+  it('refuse une cellule dont la marque a un alias non validé', () => {
+    const r = new BrandResolver(
+      ['New Balance'],
+      [{ alias: 'NB', marque: 'New Balance', valide: false }],
+    );
+    expect(() => cellulesExecutables([c({ marque: 'New Balance' })] as never, r)).toThrow(
+      /alias non validés : NB/,
+    );
+  });
+
+  it('cellule crawlable → champs utiles, catalogId numérique', () => {
+    expect(loadCellules(file({ cellules: [c()] }))).toEqual([
+      {
+        categorie: 'Sweats et pulls (H)',
+        catalogId: 79,
+        marque: 'AMI Paris',
+        taille: null,
+        tier: 'tertiary',
+        cibleActives: 20,
+      },
+    ]);
+  });
+});
+
+describe('seed/cellules.json', () => {
+  const path = new URL('../../seed/cellules.json', import.meta.url).pathname;
+  const cellules = readCellules(path);
+
+  it('15 cellules, 3 catégories × 5 marques, tier et cibleActives cohérents', () => {
+    expect(cellules).toHaveLength(15);
+    const parTier = (t: string) => cellules.filter((x) => x.tier === t).length;
+    expect([parTier('priority'), parTier('secondary'), parTier('tertiary')]).toEqual([5, 5, 5]);
+  });
+
+  it('pulls : catalogues 13 (F) et 79 (H) relevés le 2026-11-04', () => {
+    const cat = Object.fromEntries(cellules.map((x) => [x.marque, x.catalogId]));
+    expect(cat).toMatchObject({
+      Sézane: 13,
+      Sandro: 13,
+      Maje: 13,
+      'AMI Paris': 79,
+      'Ralph Lauren': 79,
+    });
+  });
+
+  it('aucune cellule crawlable tant que le go n’est pas donné', () => {
+    expect(cellules.every((x) => !x.valide)).toBe(true);
+    expect(() => loadCellules(path)).toThrow(/non crawlables/);
   });
 });

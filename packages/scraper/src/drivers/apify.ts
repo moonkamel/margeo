@@ -133,7 +133,11 @@ export class ApifyDriver implements ScraperDriver {
     size: string | null,
     maxItems: number,
   ): Promise<unknown[]> {
-    const searchUrl = buildCatalogSearchUrl(category, brand, size);
+    return this.searchRawUrl(buildCatalogSearchUrl(category, brand, size), maxItems);
+  }
+
+  /** Recherche brute sur une URL de catalogue déjà construite, plafonnée à `maxItems`. */
+  async searchRawUrl(searchUrl: string, maxItems: number): Promise<unknown[]> {
     return this.runActor(this.inputs.search(searchUrl, maxItems));
   }
 

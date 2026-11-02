@@ -5,15 +5,12 @@ import {
   type Cellule,
   type RunSeedOptions,
 } from '../../src/seed/index.js';
-import { FakeSource, listing } from './fake-source.js';
+import { cellule, FakeSource, listing } from './fake-source.js';
 import { MemoryRepo } from './memory-repo.js';
 
 const H = 60 * 60 * 1000;
 const T0 = new Date('2026-11-10T05:00:00Z').getTime();
-const CELLULES: Cellule[] = [
-  { categorie: 'Baskets', marque: 'Nike', taille: null },
-  { categorie: 'Baskets', marque: 'Adidas', taille: null },
-];
+const CELLULES: Cellule[] = [cellule('Baskets', 'Nike'), cellule('Baskets', 'Adidas')];
 const BUDGET: BudgetConfig = {
   hardStopCents: 4800,
   suiviCents: 3000,
@@ -31,15 +28,18 @@ beforeEach(() => {
   clock = T0;
 });
 
-const run = (o: Partial<RunSeedOptions> = {}) =>
+/** `cible` : parc cible appliqué à toutes les cellules du run. */
+const run = ({ cible, ...o }: Partial<RunSeedOptions> & { cible?: number } = {}) =>
   runSeed({
     campagne: 'test',
-    cellules: CELLULES,
     budget: BUDGET,
     source,
     repo,
     now: () => new Date(clock),
     ...o,
+    cellules: (o.cellules ?? CELLULES).map((c) =>
+      cible === undefined ? c : { ...c, cibleActives: cible },
+    ),
   });
 
 /** Avance l'horloge d'un jour. */
@@ -69,7 +69,6 @@ describe('runSeed — découverte', () => {
     source.catalogue.set('Baskets|Nike', [
       listing({ externalId: 'ok' }),
       listing({ externalId: 'puma', marque: 'Puma' }),
-      listing({ externalId: 'robe', categorie: 'Robes' }),
       listing({ externalId: 'vendue', statut: 'sold' }),
       listing({ externalId: 'ok' }), // doublon dans la même réponse
     ]);
@@ -96,7 +95,7 @@ describe('runSeed — parc cible par cellule', () => {
           k,
           v.filter((l) => !repo.byExternalId(l.externalId)),
         );
-      await run({ cellules, cibleActivesParCellule: 12 });
+      await run({ cellules, cible: 12 });
       jourSuivant();
     }
     // 5 + 5 + 2 puis plus rien : parc plafonné à 12.
@@ -111,7 +110,7 @@ describe('runSeed — parc cible par cellule', () => {
       Array.from({ length: 10 }, (_, i) => listing({ externalId: `n${i}` })),
     );
     const cellules = [CELLULES[0] as Cellule];
-    await run({ cellules, cibleActivesParCellule: 3 });
+    await run({ cellules, cible: 3 });
     for (const [k, v] of source.catalogue)
       source.catalogue.set(
         k,
@@ -125,7 +124,7 @@ describe('runSeed — parc cible par cellule', () => {
     );
     jourSuivant();
     source.appels.length = 0;
-    const r = await run({ cellules, cibleActivesParCellule: 3 });
+    const r = await run({ cellules, cible: 3 });
     expect(r.ventesDetectees).toBe(1);
     expect(source.appels.find((a) => a.type === 'discover')?.taille).toBe(1);
     expect(r.nouvellesAnnonces).toBe(1);
@@ -169,7 +168,7 @@ describe('runSeed — re-vérification', () => {
     jourSuivant();
     const r = await run();
     expect(r.ventesDetectees).toBe(1);
-    expect(r.details['cellules']).toMatchObject({ 'Baskets|Nike|*': { ventes: 1, vues: 3 } });
+    expect(r.details['cellules']).toMatchObject({ '100|Nike|*': { ventes: 1, vues: 3 } });
     const t = repo.byExternalId('b');
     expect(t).toMatchObject({ statut: 'SOLD', soldPrixCents: 3800, soldSource: 'sold_status' });
     expect(repo.state.ventes.get(t?.id ?? '')).toMatchObject({
@@ -315,7 +314,7 @@ describe('runSeed — hard stop budgétaire', () => {
           k,
           v.filter((l) => !repo.byExternalId(l.externalId)),
         );
-      dernier = await run({ budget, cibleActivesParCellule: 1000 });
+      dernier = await run({ budget, cible: 1000 });
       expect(repo.totalSpent()).toBeLessThanOrEqual(4800 * 1000);
       if (dernier.statut === 'BUDGET_STOPPED') break;
       jourSuivant();
@@ -326,7 +325,7 @@ describe('runSeed — hard stop budgétaire', () => {
     // Le lendemain : plus aucun appel.
     jourSuivant();
     source.appels.length = 0;
-    const apres = await run({ budget, cibleActivesParCellule: 1000 });
+    const apres = await run({ budget, cible: 1000 });
     expect(source.appels).toHaveLength(0);
     expect(apres.statut).toBe('BUDGET_STOPPED');
     expect(repo.totalSpent()).toBe(4800 * 1000);

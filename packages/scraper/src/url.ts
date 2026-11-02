@@ -37,3 +37,18 @@ export function buildCatalogSearchUrl(
   u.searchParams.set('order', 'newest_first');
   return u.toString();
 }
+
+/**
+ * URL de recherche d'une cellule : catalogue Vinted exact (`catalog[]`, source de vérité) et
+ * marque en texte libre. Le rattachement à la marque est refait sur le payload (alias validés).
+ */
+export function buildCellSearchUrl(catalogId: number, brand: string, size: string | null): string {
+  if (!Number.isInteger(catalogId) || catalogId <= 0) {
+    throw new ScraperError('invalid_url', `Identifiant de catalogue invalide : ${catalogId}`);
+  }
+  const u = new URL('https://www.vinted.fr/catalog');
+  u.searchParams.append('catalog[]', String(catalogId));
+  u.searchParams.set('search_text', [brand, size].filter((t) => t && t.trim()).join(' '));
+  u.searchParams.set('order', 'newest_first');
+  return u.toString();
+}

@@ -161,3 +161,31 @@ export class BudgetLedger {
 export function formatMilli(milli: number): string {
   return `${(milli / (100 * MILLI_PAR_CENTIME)).toFixed(2).replace('.', ',')} €`;
 }
+
+/** Part du plafond réellement dépensable : l'arrêt dur tombe à 80 % (doc 2b, 8.9). */
+export const ARRET_DUR_RATIO = 0.8;
+/** Part de l'arrêt dur réservée au suivi ; le reste va à la découverte, coupée en premier. */
+export const PART_SUIVI = 0.85;
+
+/**
+ * Budget mensuel déduit du PLAFOND (`--budget-max`) :
+ * arrêt dur = 80 % du plafond, puis 85 % suivi / 15 % découverte appliqués à l'arrêt dur.
+ * Exemple : plafond 10 000 c → arrêt dur 8 000 c, suivi 6 800 c, découverte 1 200 c.
+ * Les 20 % restants sont une marge contre les écarts de facturation Apify : jamais dépensés.
+ */
+export function budgetDepuisPlafond(
+  plafondCents: number,
+  coutParResultatMilli: number,
+): BudgetConfig {
+  if (!Number.isInteger(plafondCents) || plafondCents <= 0) {
+    throw new RangeError(`Plafond invalide : ${plafondCents}`);
+  }
+  const hardStopCents = Math.floor(plafondCents * ARRET_DUR_RATIO);
+  const suiviCents = Math.floor(hardStopCents * PART_SUIVI);
+  return {
+    hardStopCents,
+    suiviCents,
+    decouverteCents: hardStopCents - suiviCents,
+    coutParResultatMilli,
+  };
+}

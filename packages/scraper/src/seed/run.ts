@@ -1,4 +1,6 @@
+import { BrandResolver } from './brand-alias.js';
 import { BudgetLedger, formatMilli, type BudgetConfig, type Envelope } from './budget.js';
+import { premierDuMoisSuivant } from './campagne.js';
 import {
   firstObservation,
   matchesCellule,
@@ -31,11 +33,12 @@ export interface RunSeedOptions {
   /** Résultats max de découverte par cellule et par jour (défaut 5). */
   maxDecouverteParCellule?: number;
   /**
-   * Parc cible d'annonces actives par cellule (défaut 20, soit ~300 pour 15 cellules).
-   * La découverte ne fait que compléter jusqu'à cette cible : sans elle, le parc suivi
-   * grossirait chaque jour et le coût de re-vérification exploserait.
+   * Alias de marques validés. Par défaut : seules les marques canoniques des cellules.
+   * La découverte complète chaque cellule jusqu'à SON parc cible (`cellule.cibleActives`).
    */
-  cibleActivesParCellule?: number;
+  brandResolver?: BrandResolver;
+  /** Plafond mensuel (`--budget-max`), pour le message d'arrêt dur. */
+  plafondCents?: number;
   /** Une annonce vérifiée depuis moins longtemps n'est pas re-vérifiée (défaut 20 h). */
   intervalleVerifMs?: number;
 }
@@ -57,8 +60,14 @@ interface CelluleLog {
   erreurs: number;
 }
 
-const cleCellule = (c: { categorie: string; marque: string | null; taille: string | null }) =>
-  `${c.categorie}|${c.marque}|${c.taille ?? '*'}`;
+const cleCellule = (c: Cellule) => `${c.catalogId}|${c.marque}|${c.taille ?? '*'}`;
+
+/** Motifs de rejet d'une annonce découverte (journal par cellule). */
+interface Rejets {
+  marque: number;
+  sousCategorieAbsente: number;
+  horsParent: number;
+}
 
 /**
  * Exécution quotidienne du seed :
@@ -77,7 +86,12 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
   const batchSize = opts.batchSize ?? 50;
   const maxDecouverte = opts.maxDecouverteParCellule ?? 5;
   const intervalle = opts.intervalleVerifMs ?? 20 * 60 * 60 * 1000;
-  const cible = opts.cibleActivesParCellule ?? 20;
+  const resolver =
+    opts.brandResolver ??
+    new BrandResolver(
+      opts.cellules.map((c) => c.marque),
+      [],
+    );
   const { repo, source, campagne } = opts;
 
   const dejaDepense = await repo.campaignSpent(campagne);
@@ -87,6 +101,9 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
   const depenseAvant = ledger.totalMilli;
   const alertes: string[] = [];
   const parCellule: Record<string, CelluleLog> = {};
+  const rejets: Record<string, Rejets> = {};
+  /** Sous-catégories vues sous un autre parent que celui de la recherche (élargissement). */
+  const elargissements: { cellule: string; subcategoryId: number; parentConnu: number }[] = [];
   const compteurs = {
     annoncesVerifiees: 0,
     nouvellesAnnonces: 0,
@@ -202,7 +219,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     for (const cellule of opts.cellules) {
       if (ledger.stopped || ledger.decouverteCoupee) break;
       const key = cleCellule(cellule);
-      const manquantes = cible - (await repo.countActive(cellule));
+      const manquantes = cellule.cibleActives - (await repo.countActive(cellule));
       if (manquantes <= 0) continue; // parc complet : aucune découverte, aucune dépense
       const max = Math.min(maxDecouverte, manquantes, ledger.affordableResultats('decouverte'));
       if (max <= 0) {
@@ -220,9 +237,39 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
       }
       if (!reponse) break;
 
-      const candidates = reponse.listings.filter(
-        (d) => d.listing.statut === 'active' && matchesCellule(d.listing, cellule),
+      // Rattachement : catalogue de la recherche (garanti par l'URL) + marque canonique via
+      // alias validés (+ taille). Jamais le libellé de catégorie, qui est celui de la feuille.
+      const r = (rejets[key] ??= { marque: 0, sousCategorieAbsente: 0, horsParent: 0 });
+      const parMarque = reponse.listings.filter((d) => {
+        if (d.listing.statut !== 'active') return false;
+        const ok =
+          resolver.resolve(d.listing.marque) === cellule.marque &&
+          (cellule.taille === null ||
+            d.listing.taille?.trim().toLowerCase() === cellule.taille.trim().toLowerCase());
+        if (!ok) r.marque++;
+        return ok;
+      });
+      const parents = await repo.subcategoryParents(
+        parMarque.flatMap((d) => (d.subcategoryId === null ? [] : [d.subcategoryId])),
       );
+      const candidates = parMarque.filter((d) => {
+        if (d.subcategoryId === null) {
+          r.sousCategorieAbsente++;
+          return false;
+        }
+        const parent = parents.get(d.subcategoryId);
+        if (parent !== undefined && parent !== cellule.catalogId) {
+          r.horsParent++;
+          if (!elargissements.some((e) => e.subcategoryId === d.subcategoryId && e.cellule === key))
+            elargissements.push({
+              cellule: key,
+              subcategoryId: d.subcategoryId,
+              parentConnu: parent,
+            });
+          return false;
+        }
+        return true;
+      });
       const dejaSuivies = await repo.trackedExternalIds(
         candidates.map((d) => d.listing.externalId),
       );
@@ -233,7 +280,16 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
         dejaSuivies.add(d.listing.externalId);
         try {
           await repo.transaction(async (tx) => {
-            const t = await tx.createTracked(newTrackedFrom(d.listing, now()));
+            const t = await tx.createTracked(
+              newTrackedFrom(d.listing, cellule, d.subcategoryId, now()),
+            );
+            if (d.subcategoryId !== null) {
+              await tx.recordSubcategory({
+                subcategoryId: d.subcategoryId,
+                parentId: cellule.catalogId,
+                libelle: d.listing.categorie,
+              });
+            }
             await tx.appendObservation({
               ...firstObservation(d.listing, d.payload, now()),
               trackedListingId: t.id,
@@ -275,8 +331,17 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
   if (ledger.stopped) arretMotif = 'budget_cap';
   const snap = ledger.snapshot();
   if (arretMotif === 'budget_cap') {
+    const plafond =
+      opts.plafondCents === undefined
+        ? ''
+        : ` du plafond de ${formatMilli(opts.plafondCents * 1000)}`;
     alertes.unshift(
-      `ARRÊT DUR : plafond de ${formatMilli(snap.capMilli)} atteint (dépense campagne ${formatMilli(snap.totalMilli)}). Crawler coupé.`,
+      `ARRÊT DUR : Budget seed à 80 %${plafond} (${formatMilli(snap.totalMilli)} dépensés sur ${formatMilli(snap.capMilli)} autorisés) — prochain run le ${premierDuMoisSuivant(now())} ou ajuster SEED_BUDGET_CENTS_MAX. Crawler coupé.`,
+    );
+  }
+  for (const e of elargissements) {
+    alertes.push(
+      `Élargissement de recherche : sous-catégorie ${e.subcategoryId} rattachée au catalogue ${e.parentConnu}, reçue pour la cellule ${e.cellule}. Annonces écartées.`,
     );
   }
   if (ledger.decouverteCoupee) alertes.push(`Découverte coupée : ${ledger.decouverteCoupee}.`);
@@ -292,6 +357,8 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     ...compteurs,
     details: {
       cellules: parCellule,
+      rejets,
+      elargissements,
       arret: arretMotif,
       decouverteCoupee: ledger.decouverteCoupee,
       depense: { suivi: snap.suivi, decouverte: snap.decouverte, total: snap.totalMilli },

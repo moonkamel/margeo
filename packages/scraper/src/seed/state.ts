@@ -25,15 +25,18 @@ export interface Transition {
 
 const norm = (v: string | null): string | null => (v === null ? null : v.trim().toLowerCase());
 
-/** L'annonce appartient-elle exactement à la cellule ? (taille null = toutes tailles) */
+/**
+ * L'annonce suivie appartient-elle à la cellule ? Clé : catalogue de recherche + marque
+ * canonique (+ taille si la cellule en fixe une). Le libellé de catégorie n'intervient JAMAIS.
+ */
 export function matchesCellule(
-  l: Pick<NormalizedListing, 'categorie' | 'marque' | 'taille'>,
+  t: Pick<TrackedState, 'catalogIdRecherche' | 'marque' | 'taille'>,
   c: Cellule,
 ): boolean {
   return (
-    norm(l.categorie) === norm(c.categorie) &&
-    norm(l.marque) === norm(c.marque) &&
-    (c.taille === null || norm(l.taille) === norm(c.taille))
+    t.catalogIdRecherche === c.catalogId &&
+    norm(t.marque) === norm(c.marque) &&
+    (c.taille === null || norm(t.taille) === norm(c.taille))
   );
 }
 
@@ -53,13 +56,22 @@ function snapshot(
   };
 }
 
-export function newTrackedFrom(listing: NormalizedListing, now: Date): NewTracked {
+/**
+ * Annonce suivie créée par la découverte d'une cellule : marque canonique et libellé de la
+ * cellule, catalogue de recherche, sous-catégorie réelle (libellé feuille du payload).
+ */
+export function newTrackedFrom(
+  listing: NormalizedListing,
+  cellule: Cellule,
+  subcategoryId: number | null,
+  now: Date,
+): NewTracked {
   return {
     plateforme: 'VINTED',
     externalId: listing.externalId,
     url: listing.url,
-    categorie: listing.categorie,
-    marque: listing.marque,
+    categorie: cellule.categorie,
+    marque: cellule.marque,
     taille: listing.taille,
     prixInitialCents: listing.prixCents,
     prixCourantCents: listing.prixCents,
@@ -72,6 +84,9 @@ export function newTrackedFrom(listing: NormalizedListing, now: Date): NewTracke
     soldAt: null,
     soldPrixCents: null,
     soldSource: null,
+    catalogIdRecherche: cellule.catalogId,
+    subcategoryId,
+    subcategoryLabel: subcategoryId === null ? null : listing.categorie,
   };
 }
 

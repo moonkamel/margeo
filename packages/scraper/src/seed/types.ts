@@ -1,11 +1,30 @@
 import type { Etat, NormalizedListing } from '@margeo/shared';
 
-/** Cellule de seed : (catégorie Vinted exacte, marque normalisée, taille optionnelle). */
+export type Tier = 'priority' | 'secondary' | 'tertiary';
+
+/** Parc cible d'annonces actives par tier (doc 2b, section 8.1). */
+export const CIBLE_PAR_TIER: Readonly<Record<Tier, number>> = {
+  priority: 70,
+  secondary: 30,
+  tertiary: 20,
+};
+
+/**
+ * Cellule de seed crawlable. Clé de rattachement : (catalogId, marque canonique, taille).
+ * Le libellé `categorie` est cosmétique : il n'est jamais utilisé pour rattacher une annonce.
+ */
 export interface Cellule {
+  /** Libellé Vinted (ex. « Sweats et pulls (H) »), affichage et stats uniquement. */
   categorie: string;
+  /** Catalogue Vinted de la recherche (catégorie parente, ex. 13, 79) : source de vérité. */
+  catalogId: number;
+  /** Marque canonique (les alias validés s'y rattachent). */
   marque: string;
   /** null = toutes tailles (ex. tech). */
   taille: string | null;
+  tier: Tier;
+  /** Parc cible d'annonces actives suivies (= CIBLE_PAR_TIER[tier]). */
+  cibleActives: number;
 }
 
 export type TrackedStatut = 'ACTIVE' | 'SOLD' | 'DISAPPEARED' | 'CLOSED';
@@ -30,6 +49,11 @@ export interface TrackedState {
   soldAt: Date | null;
   soldPrixCents: number | null;
   soldSource: 'sold_status' | 'disappeared' | null;
+  /** Catalogue parent de la recherche de découverte (null : annonce hors seed). Immuable. */
+  catalogIdRecherche: number | null;
+  /** Sous-catégorie Vinted relevée à la première observation. Immuable. */
+  subcategoryId: number | null;
+  subcategoryLabel: string | null;
 }
 
 export type NewTracked = Omit<TrackedState, 'id'>;
@@ -73,6 +97,14 @@ export type RecheckResult =
 export interface DiscoveredListing {
   listing: NormalizedListing;
   payload: unknown;
+  /** Sous-catégorie (catalogue feuille) lue dans le payload ; null si absente. */
+  subcategoryId: number | null;
+}
+
+export interface SubcategoryMapping {
+  subcategoryId: number;
+  parentId: number;
+  libelle: string;
 }
 
 /**
@@ -94,6 +126,8 @@ export interface SeedTx {
   updateTracked(id: string, patch: Partial<NewTracked>): Promise<void>;
   appendObservation(o: ObservationInput): Promise<void>;
   writeSoldProjection(s: SoldProjection): Promise<void>;
+  /** Enregistre sous-catégorie → parent si elle est inconnue (jamais d'écrasement). */
+  recordSubcategory(m: SubcategoryMapping): Promise<void>;
 }
 
 export interface RunCounters {
@@ -128,10 +162,15 @@ export interface SeedRepository {
     resultatsFactures: number,
   ): Promise<void>;
   finishRun(runId: string, summary: SeedRunSummary, finishedAt: Date): Promise<void>;
-  /** Annonces ACTIVE à re-vérifier (dernière vérification avant `before`), plus anciennes d'abord. */
+  /**
+   * Annonces ACTIVE du seed (catalogIdRecherche renseigné) à re-vérifier (dernière vérification
+   * avant `before`), plus anciennes d'abord. Les annonces hors seed ne consomment pas le budget.
+   */
   listToRecheck(before: Date, limit: number): Promise<TrackedState[]>;
-  /** Nombre d'annonces ACTIVE suivies dans la cellule (taille null = toutes tailles). */
+  /** Annonces ACTIVE suivies dans la cellule : (catalogIdRecherche, marque, taille null = toutes). */
   countActive(cellule: Cellule): Promise<number>;
+  /** Parent connu de chaque sous-catégorie demandée (absentes = jamais observées). */
+  subcategoryParents(ids: readonly number[]): Promise<Map<number, number>>;
   /** Sous-ensemble des identifiants déjà suivis. */
   trackedExternalIds(externalIds: readonly string[]): Promise<Set<string>>;
   /** Exécute `fn` de façon atomique : en cas d'erreur, aucune écriture n'est conservée. */
