@@ -1,5 +1,13 @@
 # Phase 2b — Crawl de seed : document à valider
 
+> **Pivot du 2026-11-02 : usage personnel, pas de monétisation.** Margeo devient un outil personnel
+> de revendeur (seed + API minimale + extension side panel), sans SaaS, sans Stripe, sans
+> multi-utilisateur. Dans ce document, sont **obsolètes** : la section 8.6 (Marketing) et, en 8.4, la
+> phrase sur la « communication » du produit. **Restent valables** : tout le reste, en particulier
+> les sections 5 (séquence), 6 (stockage), 7 (alias) et 8.5 (affichage du niveau et du nombre de
+> ventes, repris par l'extension). Le périmètre cible passe de 15 à **6 cellules** en secondary
+> (cible 30) ; la liste à jour figurera dans `cellules.json` après le J+2.
+
 > Statut : **proposition.** Aucun appel Apify n'a été fait. Les 15 cellules sont à
 > `valide: false` dans `packages/scraper/seed/cellules.json`, et le CLI refuse de crawler une
 > cellule non validée.
