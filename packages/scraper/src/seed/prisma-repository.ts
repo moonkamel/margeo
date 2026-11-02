@@ -64,6 +64,33 @@ export class PrismaSeedRepository implements SeedRepository {
     });
   }
 
+  /**
+   * Saisie manuelle d'une dépense passée hors CLI (ex. tests d'acteurs lancés via l'API), pour
+   * que le cumul de la campagne reste exact. Refusée si la même note existe déjà (pas de double
+   * saisie). Imputée sur l'enveloppe découverte, comme toute la vérification.
+   */
+  async recordBackfill(campagne: string, centimes: number, note: string, at: Date) {
+    if (!Number.isInteger(centimes) || centimes <= 0)
+      throw new RangeError(`Montant invalide : ${centimes}`);
+    const deja = await this.prisma.seedRun.findFirst({
+      where: { campagne, details: { path: ['backfill', 'note'], equals: note } },
+      select: { id: true },
+    });
+    if (deja) throw new Error(`Dépense déjà saisie dans ${campagne} : « ${note} »`);
+    const run = await this.prisma.seedRun.create({
+      data: {
+        campagne,
+        statut: 'COMPLETED',
+        budgetMaxCents: 0,
+        startedAt: at,
+        finishedAt: at,
+        coutDecouverteMilliCents: centimes * 1000,
+        details: { backfill: { note, centimes, saisiLe: at.toISOString() } },
+      },
+    });
+    return run.id;
+  }
+
   async campaignSpent(campagne: string) {
     const agg = await this.prisma.seedRun.aggregate({
       where: { campagne },

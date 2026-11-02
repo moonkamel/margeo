@@ -18,7 +18,8 @@
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "scraper:inspect": "pnpm --filter @margeo/scraper inspect",
     "seed:run": "pnpm --filter @margeo/scraper seed:run",
-    "seed:verify-volume": "pnpm --filter @margeo/scraper seed:verify-volume"
+    "seed:verify-volume": "pnpm --filter @margeo/scraper seed:verify-volume",
+    "seed:backfill-verify": "pnpm --filter @margeo/scraper seed:backfill-verify"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

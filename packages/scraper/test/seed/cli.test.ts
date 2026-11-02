@@ -47,3 +47,16 @@ describe('seed:verify-volume — CLI', { timeout: 150_000 }, () => {
     expect(r.stderr).toMatch(/APIFY_TOKEN manquant/);
   });
 });
+
+describe('seed:backfill-verify — CLI', { timeout: 150_000 }, () => {
+  it('sans --execute : dry-run, rien n’est écrit, aucune base requise', () => {
+    const r = cli('src/cli/seed-backfill-verify.ts', ['--amount-cents', '24', '--note', 'tests']);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/DRY-RUN.*0,24 € dans verify-\d{4}-\d{2}/);
+  });
+
+  it('montant ou note manquant → sortie 2', () => {
+    expect(cli('src/cli/seed-backfill-verify.ts', ['--note', 'x']).status).toBe(2);
+    expect(cli('src/cli/seed-backfill-verify.ts', ['--amount-cents', '24']).status).toBe(2);
+  });
+});

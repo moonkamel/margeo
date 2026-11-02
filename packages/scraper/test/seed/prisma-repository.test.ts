@@ -22,6 +22,7 @@ const BUDGET: BudgetConfig = {
   suiviCents: 3000,
   decouverteCents: 1800,
   coutParResultatMilli: 1000,
+  coutParRunMilli: 0, // frais par run testés dans decisions-2b.test.ts
 };
 const H = 60 * 60 * 1000;
 
@@ -234,6 +235,18 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
     expect(liste.map((t) => t.externalId)).not.toContain('hors-seed');
     expect(liste.every((t) => t.catalogIdRecherche !== null)).toBe(true);
     expect(await new PrismaSeedRepository(prisma).countNonRattachees()).toBe(1);
+  });
+
+  it('backfill : dépense saisie comptée dans la campagne, double saisie refusée', async () => {
+    const repo = new PrismaSeedRepository(prisma);
+    const at = new Date('2026-11-04T13:00:00Z');
+    await repo.recordBackfill('verify-backfill', 24, 'tests acteurs A, A bis, 5 Sézane', at);
+    expect(await repo.campaignSpent('verify-backfill')).toEqual({ suivi: 0, decouverte: 24_000 });
+    await expect(
+      repo.recordBackfill('verify-backfill', 24, 'tests acteurs A, A bis, 5 Sézane', at),
+    ).rejects.toThrow(/déjà saisie/);
+    await expect(repo.recordBackfill('verify-backfill', 0, 'x', at)).rejects.toThrow(RangeError);
+    expect(await repo.campaignSpent('verify-backfill')).toEqual({ suivi: 0, decouverte: 24_000 });
   });
 
   it('hard stop persistant : une campagne à 48 € ne lance plus aucun appel', async () => {

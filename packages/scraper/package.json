@@ -16,7 +16,8 @@
     "test": "vitest run",
     "inspect": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/inspect.ts",
     "seed:run": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/seed-run.ts",
-    "seed:verify-volume": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/seed-verify-volume.ts"
+    "seed:verify-volume": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/seed-verify-volume.ts",
+    "seed:backfill-verify": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/seed-backfill-verify.ts"
   },
   "dependencies": {
     "@margeo/db": "workspace:*",
