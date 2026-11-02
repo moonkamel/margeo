@@ -15,7 +15,8 @@
     "dev": "turbo run dev",
     "db:generate": "pnpm --filter @margeo/db generate",
     "db:migrate": "pnpm --filter @margeo/db migrate:deploy",
-    "infra:up": "docker compose -f infra/docker-compose.yml up -d"
+    "infra:up": "docker compose -f infra/docker-compose.yml up -d",
+    "scraper:inspect": "pnpm --filter @margeo/scraper inspect"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

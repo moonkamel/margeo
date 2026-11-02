@@ -1,0 +1,8 @@
+{
+  "id": 1,
+  "title": "Item US",
+  "status_id": 2,
+  "price": { "amount": "10.0", "currency_code": "USD" },
+  "catalog_title": "Jeans",
+  "user": { "login": "us" }
+}

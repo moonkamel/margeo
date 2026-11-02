@@ -12,7 +12,8 @@
       "dependsOn": ["generate"]
     },
     "test": {
-      "dependsOn": ["generate"]
+      "dependsOn": ["generate"],
+      "passThroughEnv": ["REDIS_URL", "DATABASE_URL"]
     },
     "dev": {
       "cache": false,

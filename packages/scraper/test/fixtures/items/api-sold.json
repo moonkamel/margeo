@@ -1,0 +1,19 @@
+{
+  "id": 4817263599,
+  "title": "Sneakers Nike Air Force 1",
+  "description": "Très peu portées.",
+  "brand_title": "Nike",
+  "size_title": "42",
+  "status": "Bon état",
+  "status_id": 3,
+  "price": "45.0",
+  "currency": "EUR",
+  "favourite_count": 31,
+  "view_count": 512,
+  "catalog_title": "Baskets",
+  "url": "https://www.vinted.fr/items/4817263599-sneakers-nike-air-force-1",
+  "photos": [],
+  "user": { "login": "sneakfan", "feedback_reputation": 1, "feedback_count": 12 },
+  "is_closed": true,
+  "item_closing_action": "sold"
+}

@@ -34,12 +34,9 @@ describe('createScraperDriver', () => {
   });
 });
 
-describe('stubs Phase 1', () => {
-  it.each([
-    ['apify', () => new ApifyDriver({ actorId: 'a', token: 't' })],
-    ['custom', () => new CustomDriver()],
-  ])('%s lève NotImplementedError', async (_name, make) => {
-    const d = make();
+describe('driver custom (hors MVP)', () => {
+  it('lève NotImplementedError', async () => {
+    const d = new CustomDriver();
     await expect(d.fetchListing('https://www.vinted.fr/items/1')).rejects.toBeInstanceOf(
       NotImplementedError,
     );

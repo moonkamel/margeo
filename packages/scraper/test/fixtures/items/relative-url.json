@@ -1,0 +1,15 @@
+{
+  "id": 4817264444,
+  "title": "Veste AMI Paris",
+  "brand_title": "AMI Paris",
+  "status_id": 6,
+  "price": "180.0",
+  "catalog_title": "Manteaux et vestes",
+  "url": "/items/4817264444-veste-ami-paris",
+  "photos": [
+    { "url": "not a url" },
+    { "full_size_url": "https://images1.vinted.net/t/03/f800/v.jpeg" },
+    42
+  ],
+  "user": { "login": "ami_fan", "feedback_reputation": 0.873 }
+}

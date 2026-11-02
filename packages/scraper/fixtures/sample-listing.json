@@ -1,0 +1,31 @@
+{
+  "id": 4817263512,
+  "title": "Jean Levi's 501 bleu brut",
+  "description": "Porté quelques fois, aucun défaut.",
+  "brand_title": "Levi's",
+  "size_title": "W32 | FR 42",
+  "status": "Très bon état",
+  "status_id": 2,
+  "price": { "amount": "25.0", "currency_code": "EUR" },
+  "favourite_count": 14,
+  "view_count": 233,
+  "catalog_id": 257,
+  "catalog_title": "Jeans",
+  "url": "https://www.vinted.fr/items/4817263512-jean-levis-501-bleu-brut",
+  "photos": [
+    {
+      "url": "https://images1.vinted.net/t/01_abc/310x430/a.jpeg",
+      "full_size_url": "https://images1.vinted.net/t/01_abc/f800/a.jpeg"
+    },
+    { "url": "https://images1.vinted.net/t/01_abc/310x430/b.jpeg" }
+  ],
+  "user": {
+    "login": "marie_vend",
+    "feedback_reputation": 0.96,
+    "feedback_count": 127,
+    "created_at": "2022-11-02T10:00:00+01:00"
+  },
+  "is_closed": false,
+  "item_closing_action": null,
+  "created_at_ts": "2026-10-28T09:12:00+01:00"
+}

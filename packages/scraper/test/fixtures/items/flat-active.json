@@ -1,0 +1,22 @@
+{
+  "id": "5100000001",
+  "title": "Pull Sézane maille côtelée",
+  "description": "Taille M, couleur écrue.",
+  "brand": "Sézane",
+  "size": "M",
+  "condition": "Neuf avec étiquette",
+  "price": 59.9,
+  "currency": "EUR",
+  "favourites": 8,
+  "views": 97,
+  "category": "Pulls et sweats",
+  "url": "https://www.vinted.fr/items/5100000001-pull-sezane",
+  "images": ["https://images1.vinted.net/t/02/f800/p.jpeg"],
+  "seller": {
+    "username": "chloe.closet",
+    "rating": 4.8,
+    "reviews": 54,
+    "memberSince": "2020-03-15T00:00:00Z"
+  },
+  "status": "active"
+}

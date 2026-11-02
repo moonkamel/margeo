@@ -1,0 +1,8 @@
+{
+  "id": 2,
+  "title": "Etat bizarre",
+  "status": "Comme neuf ou presque",
+  "price": "10.0",
+  "catalog_title": "Jeans",
+  "user": { "login": "u" }
+}

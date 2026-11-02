@@ -1,0 +1,10 @@
+{
+  "id": 4817265555,
+  "title": "Jupe",
+  "status_id": 3,
+  "price": "12.0",
+  "catalog_title": "Jupes",
+  "user": { "login": "u" },
+  "is_closed": true,
+  "item_closing_action": "deleted"
+}

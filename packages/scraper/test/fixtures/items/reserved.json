@@ -1,0 +1,9 @@
+{
+  "id": 4817266666,
+  "title": "Sac",
+  "status_id": 2,
+  "price": "30.0",
+  "catalog_title": "Sacs",
+  "user": { "login": "u" },
+  "is_reserved": true
+}
