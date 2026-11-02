@@ -33,6 +33,7 @@ export class MemoryRepo implements SeedRepository {
   /** Panne simulée : appelée avant chaque écriture, peut lever. */
   failWrite: ((op: string, arg: unknown) => void) | null = null;
   failListToRecheck = false;
+  brandAliases: { alias: string; marque: string; valide: boolean }[] = [];
 
   constructor(
     private readonly priorSpend: { suivi: number; decouverte: number } = {
@@ -40,6 +41,10 @@ export class MemoryRepo implements SeedRepository {
       decouverte: 0,
     },
   ) {}
+
+  async loadBrandAliases() {
+    return this.brandAliases.map((a) => ({ ...a }));
+  }
 
   async campaignSpent(campagne: string) {
     const rows = this.runs.filter((r) => r.campagne === campagne);

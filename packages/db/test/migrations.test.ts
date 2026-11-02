@@ -20,6 +20,8 @@ const TRACKED_DOWN = 'rollbacks/20261103000000_tracked_listing.down.sql';
 const SEED_RUN = 'migrations/20261103010000_seed_run/migration.sql';
 const SUBCAT = 'migrations/20261104000000_tracked_listing_subcategory/migration.sql';
 const SUBCAT_DOWN = 'rollbacks/20261104000000_tracked_listing_subcategory.down.sql';
+const ALIAS = 'migrations/20261104010000_brand_alias/migration.sql';
+const ALIAS_DOWN = 'rollbacks/20261104010000_brand_alias.down.sql';
 
 const created: string[] = [];
 let admin: pg.Client;
@@ -416,5 +418,46 @@ describe.skipIf(!DATABASE_URL)('migration TrackedListing.subcategory — base ex
     expect(r.rows[0].prixCourantCents).toBe(2400);
     await apply(client, SUBCAT);
     expect(await sub('100')).toEqual({ subcategoryId: null, subcategoryLabel: null });
+  });
+});
+
+describe.skipIf(!DATABASE_URL)('migration BrandAlias', () => {
+  let client: pg.Client;
+  let avant: string[];
+
+  beforeAll(async () => {
+    if (!DATABASE_URL) return;
+    ({ client } = await freshDb());
+    for (const m of [INIT, TRACKED, SEED_RUN, SUBCAT]) await apply(client, m);
+    avant = await schemaFingerprint(client);
+    await apply(client, ALIAS);
+  });
+  afterAll(async () => {
+    await client?.end();
+  });
+
+  it('alias validés et datés, ambigus absents', async () => {
+    const r = await client.query(
+      `SELECT count(*)::int AS n, bool_and(valide) AS v, bool_and("dateValidation" IS NOT NULL) AS d FROM "BrandAlias"`,
+    );
+    expect(r.rows[0]).toEqual({ n: 29, v: true, d: true });
+    const amb = await client.query(
+      `SELECT alias FROM "BrandAlias" WHERE lower(alias) IN ('nb', 'ami', 'polo', 'adidas originals')`,
+    );
+    expect(amb.rows).toEqual([]);
+  });
+
+  it('un alias validé sans date est refusé', async () => {
+    await expect(
+      client.query(`INSERT INTO "BrandAlias" (alias, marque, valide) VALUES ('X', 'Y', true)`),
+    ).rejects.toThrow(/validation_datee/);
+  });
+
+  it('rollback : schéma précédent restauré, migration réapplicable', async () => {
+    await apply(client, ALIAS_DOWN);
+    expect(await schemaFingerprint(client)).toEqual(avant);
+    await apply(client, ALIAS);
+    const r = await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`);
+    expect(r.rows[0].n).toBe(29);
   });
 });

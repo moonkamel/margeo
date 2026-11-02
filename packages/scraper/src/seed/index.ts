@@ -5,3 +5,4 @@ export * from './run.js';
 export * from './prisma-repository.js';
 export * from './apify-source.js';
 export * from './config.js';
+export * from './brand-alias.js';

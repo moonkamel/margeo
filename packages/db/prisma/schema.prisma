@@ -289,3 +289,14 @@ model SeedRun {
 
   @@index([campagne, startedAt])
 }
+
+/// Alias de marques (doc 2b, section 7) : texte tel qu'écrit dans l'annonce → marque canonique.
+/// Seuls les alias validés sont utilisés par le seed.
+model BrandAlias {
+  alias          String    @id
+  marque         String
+  valide         Boolean   @default(false)
+  dateValidation DateTime? @db.Timestamptz(3)
+
+  @@index([marque])
+}

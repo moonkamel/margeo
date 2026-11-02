@@ -48,6 +48,13 @@ function txAdapter(tx: Tx): SeedTx {
 export class PrismaSeedRepository implements SeedRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
+  async loadBrandAliases() {
+    return this.prisma.brandAlias.findMany({
+      select: { alias: true, marque: true, valide: true },
+      orderBy: { alias: 'asc' },
+    });
+  }
+
   async campaignSpent(campagne: string) {
     const agg = await this.prisma.seedRun.aggregate({
       where: { campagne },

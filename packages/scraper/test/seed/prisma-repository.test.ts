@@ -5,11 +5,13 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import pg from 'pg';
 import { createPrismaClient, type PrismaClient } from '@margeo/db';
 import {
+  BrandResolver,
   PrismaSeedRepository,
   runSeed,
   type BudgetConfig,
   type SeedTx,
 } from '../../src/seed/index.js';
+import { ALIAS_VALIDES } from './alias-reference.js';
 import { FakeSource, listing } from './fake-source.js';
 
 /** Intégration sur Postgres réel : base temporaire migrée par `prisma migrate deploy`. */
@@ -51,6 +53,19 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
   });
 
   const cellules = [{ categorie: 'Baskets', marque: 'Nike', taille: null }];
+
+  it('alias de marques migrés = référence validée de la section 7, ambigus non rattachés', async () => {
+    const rows = await new PrismaSeedRepository(prisma).loadBrandAliases();
+    const parAlias = (a: { alias: string }, b: { alias: string }) =>
+      a.alias < b.alias ? -1 : a.alias > b.alias ? 1 : 0;
+    const attendu = Object.entries(ALIAS_VALIDES).flatMap(([marque, aliases]) =>
+      aliases.map((alias) => ({ alias, marque, valide: true })),
+    );
+    expect([...rows].sort(parAlias)).toEqual(attendu.sort(parAlias));
+    const r = new BrandResolver(Object.keys(ALIAS_VALIDES), rows);
+    for (const texte of ['NB', 'AMI', 'Polo', 'Adidas Originals'])
+      expect(r.resolve(texte)).toBeNull();
+  });
 
   it('cycle complet : découverte, vente, projection, dépense persistée par run', async () => {
     const source = new FakeSource();

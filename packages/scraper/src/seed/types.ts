@@ -116,6 +116,8 @@ export interface SeedRunSummary {
 
 /** Persistance du seed (port). */
 export interface SeedRepository {
+  /** Lignes de la table BrandAlias (validées ou non). */
+  loadBrandAliases(): Promise<{ alias: string; marque: string; valide: boolean }[]>;
   campaignSpent(campagne: string): Promise<{ suivi: number; decouverte: number }>;
   startRun(campagne: string, budgetMaxCents: number, startedAt: Date): Promise<string>;
   /** Incrémente la dépense du run immédiatement après chaque appel facturé. */
