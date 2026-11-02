@@ -24,7 +24,18 @@ permissions:
   contents: read
 
 jobs:
+  # Interrupteur du cron (décision du 2026-11-04) : le passage planifié ne fait RIEN tant que la
+  # variable de dépôt SEED_CRON_ACTIF ne vaut pas exactement « true ». Sortie en succès, sans
+  # notification d'échec, sans lire aucun secret. Le lancement manuel (workflow_dispatch) n'est pas
+  # concerné : c'est une action humaine explicite.
+  cron-desactive:
+    if: ${{ github.event_name == 'schedule' && vars.SEED_CRON_ACTIF != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "::notice title=Seed non lancé::Cron désactivé, SEED_CRON_ACTIF != true. Aucun appel, aucune dépense."
+
   seed:
+    if: ${{ github.event_name != 'schedule' || vars.SEED_CRON_ACTIF == 'true' }}
     runs-on: ubuntu-latest
     timeout-minutes: 120
     env:

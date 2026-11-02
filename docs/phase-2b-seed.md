@@ -618,3 +618,9 @@ Tout autre filtre est refusé plutôt qu'ignoré ; un acteur sans mapping valid�
 logs archivés 90 jours ; variables requises en exécution : `APIFY_ACTOR_ID`
 (`abotapi/vinted-fr-scraper`), `SEED_COUT_PAR_1000_CENTS` (240), `SEED_COUT_PAR_RUN_CENTS` (5),
 secrets `APIFY_TOKEN` et `SEED_DATABASE_URL`.
+
+**Interrupteur du cron** : le passage planifié de `seed.yml` ne fait rien tant que la variable de
+dépôt `SEED_CRON_ACTIF` ne vaut pas `true` (job « cron-desactive » en succès, avec un message ;
+aucun secret lu, aucune dépense). Le lancement manuel n'est pas concerné. `seed.yml` est en plus
+désactivé dans GitHub jusqu'au go du seed. Au go : réactiver le workflow, puis
+`SEED_CRON_ACTIF=true`.
