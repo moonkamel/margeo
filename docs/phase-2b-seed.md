@@ -488,7 +488,7 @@ le slug `jumpers-and-sweaters` est commun aux deux et ne suffit pas) :
 - **Baskets** : **1242** = Hommes › Chaussures › Baskets (slug `trainers`), relevé le 2026-11-04.
   Côté Femmes : **2632** (à confirmer, voir 8.17). Répartition des 5 marques : 8.17.
 - **Casques** : **3566** = Électronique › Audio, casques et hi-fi (parent large : enceintes,
-  radios…). L'identifiant de la sous-catégorie « Casques audio et écouteurs » reste à relever.
+  radios…). Sous-catégorie « Casques audio et écouteurs » : **3678** (à confirmer, voir 8.17).
 - **Acteur** : candidat principal `kazkn` (Vinted Smart Scraper), secours `abotapi/vinted-fr-scraper`.
   Tarifs, `catalog_id` et pagination à confirmer dans le comparatif avant validation.
 
