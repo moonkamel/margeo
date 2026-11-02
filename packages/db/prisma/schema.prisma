@@ -151,36 +151,40 @@ model Analysis {
 /// État COURANT d'une annonce suivie par le crawler (une ligne par annonce).
 /// Seule source de vérité de l'état ; ListingObservation n'est qu'un journal de snapshots.
 model TrackedListing {
-  id                String               @id @default(uuid()) @db.Uuid
-  plateforme        Plateforme           @default(VINTED)
-  externalId        String
-  url               String
-  categorie         String
-  marque            String?
+  id                 String               @id @default(uuid()) @db.Uuid
+  plateforme         Plateforme           @default(VINTED)
+  externalId         String
+  url                String
+  categorie          String
+  marque             String?
   /// Null pour les catégories sans taille (tech).
-  taille            String?
-  prixInitialCents  Int
-  prixCourantCents  Int
-  etat              Etat
-  statut            TrackedListingStatut @default(ACTIVE)
-  premiereVuAt      DateTime             @db.Timestamptz(3)
-  derniereVuAt      DateTime             @db.Timestamptz(3)
-  derniereVerifAt   DateTime             @db.Timestamptz(3)
+  taille             String?
+  prixInitialCents   Int
+  prixCourantCents   Int
+  etat               Etat
+  statut             TrackedListingStatut @default(ACTIVE)
+  premiereVuAt       DateTime             @db.Timestamptz(3)
+  derniereVuAt       DateTime             @db.Timestamptz(3)
+  derniereVerifAt    DateTime             @db.Timestamptz(3)
   /// Échecs « introuvable » consécutifs (règle : 2 échecs espacés d'au moins 12 h → DISAPPEARED).
-  echecsConsecutifs Int                  @default(0)
-  soldAt            DateTime?            @db.Timestamptz(3)
-  soldPrixCents     Int?
-  soldSource        SoldSource?
+  echecsConsecutifs  Int                  @default(0)
+  soldAt             DateTime?            @db.Timestamptz(3)
+  soldPrixCents      Int?
+  soldSource         SoldSource?
   /// Sous-catégorie Vinted (catalogue feuille) relevée à la première observation, immuable
   /// ensuite (trigger). Permet de filtrer une catégorie parente crawlée sans re-crawl.
-  subcategoryId     Int?
-  subcategoryLabel  String?
+  subcategoryId      Int?
+  subcategoryLabel   String?
+  /// Catalogue PARENT de la recherche qui a découvert l'annonce (ex. 13, 79) : avec la marque
+  /// canonique, clé de rattachement à la cellule. Immuable une fois renseigné (trigger).
+  catalogIdRecherche Int?
 
   observations ListingObservation[]
   vente        SoldObservation?
 
   @@unique([plateforme, externalId])
   @@index([statut, derniereVerifAt])
+  @@index([catalogIdRecherche, marque, statut])
 }
 
 /// Journal APPEND-ONLY : un snapshot de l'annonce à chaque observation réussie.
@@ -299,4 +303,15 @@ model BrandAlias {
   dateValidation DateTime? @db.Timestamptz(3)
 
   @@index([marque])
+}
+
+/// Sous-catégorie Vinted → catalogue parent de recherche, remplie au fil des observations et
+/// vérifiée manuellement (J+14). Sert à détecter un élargissement silencieux des recherches.
+model SubcategoryToParent {
+  subcategoryId Int     @id
+  parentId      Int
+  libelle       String
+  verifie       Boolean @default(false)
+
+  @@index([parentId])
 }

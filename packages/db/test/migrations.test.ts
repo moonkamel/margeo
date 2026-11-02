@@ -22,6 +22,8 @@ const SUBCAT = 'migrations/20261104000000_tracked_listing_subcategory/migration.
 const SUBCAT_DOWN = 'rollbacks/20261104000000_tracked_listing_subcategory.down.sql';
 const ALIAS = 'migrations/20261104010000_brand_alias/migration.sql';
 const ALIAS_DOWN = 'rollbacks/20261104010000_brand_alias.down.sql';
+const S2P = 'migrations/20261104020000_subcategory_to_parent/migration.sql';
+const S2P_DOWN = 'rollbacks/20261104020000_subcategory_to_parent.down.sql';
 
 const created: string[] = [];
 let admin: pg.Client;
@@ -459,5 +461,68 @@ describe.skipIf(!DATABASE_URL)('migration BrandAlias', () => {
     await apply(client, ALIAS);
     const r = await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`);
     expect(r.rows[0].n).toBe(29);
+  });
+});
+
+describe.skipIf(!DATABASE_URL)('migration SubcategoryToParent + catalogIdRecherche', () => {
+  let client: pg.Client;
+  let avant: string[];
+
+  beforeAll(async () => {
+    if (!DATABASE_URL) return;
+    ({ client } = await freshDb());
+    await apply(client, INIT);
+    await seedExisting(client);
+    for (const m of [TRACKED, SEED_RUN, SUBCAT, ALIAS]) await apply(client, m);
+    avant = await schemaFingerprint(client);
+    await apply(client, S2P);
+  });
+  afterAll(async () => {
+    await client?.end();
+  });
+
+  const setCat = (ext: string, id: number | null) =>
+    client.query(`UPDATE "TrackedListing" SET "catalogIdRecherche" = $2 WHERE "externalId" = $1`, [
+      ext,
+      id,
+    ]);
+
+  it('annonces existantes conservées, catalogIdRecherche à NULL', async () => {
+    const r = await client.query(
+      `SELECT "externalId", "catalogIdRecherche" FROM "TrackedListing" ORDER BY 1`,
+    );
+    expect(r.rows).toEqual(
+      ['100', '200', '300', '400'].map((externalId) => ({ externalId, catalogIdRecherche: null })),
+    );
+  });
+
+  it('catalogIdRecherche : écriture unique', async () => {
+    await setCat('100', 13);
+    await expect(setCat('100', 13)).resolves.toBeDefined();
+    await expect(setCat('100', 79)).rejects.toThrow(/immuable/);
+    await expect(setCat('100', null)).rejects.toThrow(/immuable/);
+  });
+
+  it('SubcategoryToParent : une ligne par sous-catégorie, verifie à false par défaut', async () => {
+    await client.query(
+      `INSERT INTO "SubcategoryToParent" ("subcategoryId", "parentId", libelle) VALUES (1811, 13, 'Pulls à col roulé')`,
+    );
+    const r = await client.query(`SELECT * FROM "SubcategoryToParent"`);
+    expect(r.rows).toEqual([
+      { subcategoryId: 1811, parentId: 13, libelle: 'Pulls à col roulé', verifie: false },
+    ]);
+    await expect(
+      client.query(
+        `INSERT INTO "SubcategoryToParent" ("subcategoryId", "parentId", libelle) VALUES (1811, 79, 'x')`,
+      ),
+    ).rejects.toThrow(/SubcategoryToParent_pkey/);
+  });
+
+  it('rollback : schéma précédent restauré, annonces conservées, réapplicable', async () => {
+    await apply(client, S2P_DOWN);
+    expect(await schemaFingerprint(client)).toEqual(avant);
+    const r = await client.query(`SELECT count(*)::int AS n FROM "TrackedListing"`);
+    expect(r.rows[0].n).toBe(4);
+    await apply(client, S2P);
   });
 });
