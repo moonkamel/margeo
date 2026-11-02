@@ -36,6 +36,8 @@
 
 Critères, dans l'ordre :
 
+0. **Éliminatoire (décision du 2026-11-04)** : `catalog_id` (sous-catégorie) présent sur **chaque**
+   annonce renvoyée. Sans lui, le seed écarte l'annonce : un acteur qui ne l'expose pas est disqualifié.
 1. payload stable et documenté ;
 2. au plus 4 $ pour 1 000 résultats ;
 3. champ `sold` ou statut exposé nativement ;
@@ -482,10 +484,25 @@ le slug `jumpers-and-sweaters` est commun aux deux et ne suffit pas) :
 - **`SubcategoryToParent`** : remplie au fil des observations (`verifie = false`), à vérifier à J+14.
   Une annonce sans sous-catégorie, ou dont la sous-catégorie est déjà rattachée à un autre parent,
   est écartée et signalée (« Élargissement de recherche »).
-- **Baskets et Casques** : identifiants de catalogue encore à relever (`catalogId: null`, cellules
-  non mesurables ni crawlables).
+- **Baskets** : **1242** = Hommes › Chaussures › Baskets (slug `trainers`), relevé le 2026-11-04.
+  Côté Femmes : identifiant à relever dans le navigateur. Répartition des 5 marques à trancher.
+- **Casques** : **3566** = Électronique › Audio, casques et hi-fi (parent large : enceintes,
+  radios…). L'identifiant de la sous-catégorie « Casques audio et écouteurs » reste à relever.
+- **Acteur** : candidat principal `kazkn` (Vinted Smart Scraper), secours `abotapi/vinted-fr-scraper`.
+  Tarifs, `catalog_id` et pagination à confirmer dans le comparatif avant validation.
 
-**Vérification du volume** : campagne `verify-YYYY-MM`, plafond **12 €**, arrêt dur **10 €**.
+**Vérification du volume** : campagne `verify-YYYY-MM`, plafond **12 €**, arrêt dur **11 €**
+(environ 92 % ; ce n'est pas la règle des 80 % du seed), `maxItems: 200` par cellule (= seuil).
+Raison : 15 cellules × 200 résultats à 3,57 € / 1 000 = 10,71 € ; à 2,60 € / 1 000, 7,80 €.
+Le budget de vérification est **additionnel** à celui du seed : plafond global du premier mois
+**110 €** (100 € seed + 10 à 11 € vérification), puis 100 € les mois suivants.
+
+**Compteur `analysesNonRattachees`** : annonces ACTIVE sans `catalogIdRecherche` (ancienne
+migration), jamais re-vérifiées par le seed. Publié à chaque run (`SeedRun.details`, résumé du job).
+S'il est élevé dans deux mois, on envisagera une migration de rattachement rétroactif.
+
+**Colonne `origine` abandonnée** : `catalogIdRecherche IS NULL` = ancienne migration,
+`IS NOT NULL` = seed. Une seconde colonne serait une deuxième source de vérité.
 
 **Points de re-tiering à J+14** :
 
