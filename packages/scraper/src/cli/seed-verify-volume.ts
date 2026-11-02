@@ -29,6 +29,19 @@ import {
 
 const TARIFS_HYPOTHESES = [260, 357];
 
+/** Centimes (décimaux acceptés : « 4.6 ») → milli. */
+const centsArgToMilli = (name: string, v: string | undefined): number => {
+  const n = v === undefined || v.trim() === '' ? NaN : Number(v.replace(',', '.'));
+  if (!Number.isFinite(n) || n < 0)
+    throw new SeedConfigError(
+      `--${name} (ou SEED_COUT_PAR_RUN_CENTS) obligatoire : frais fixes par run, en centimes d'euro`,
+    );
+  return Math.round(n * 1000);
+};
+
+/** Hypothèse de dry-run : frais de démarrage abotapi (0,05 $ ≈ 5 c). */
+const COUT_PAR_RUN_HYPOTHESE_MILLI = 5000;
+
 const intArg = (name: string, v: string | undefined, def?: number): number => {
   const n = v === undefined || v === '' ? def : Number(v);
   if (n === undefined || !Number.isInteger(n) || n <= 0)
@@ -44,6 +57,7 @@ async function main(): Promise<number> {
       etape: { type: 'string', default: 'pilotes' },
       'max-items': { type: 'string' },
       'cout-par-1000': { type: 'string' },
+      'cout-par-run': { type: 'string' },
       cellules: { type: 'string', default: 'seed/cellules.json' },
     },
   });
@@ -68,15 +82,21 @@ async function main(): Promise<number> {
   }
   const campagne = campagneDuMois('verify', new Date());
   const tarifArg = values['cout-par-1000'] ?? process.env['SEED_COUT_PAR_1000_CENTS'];
+  const runArg = values['cout-par-run'] ?? process.env['SEED_COUT_PAR_RUN_CENTS'];
 
   if (!values.execute) {
     let tarifs: number[];
+    let coutParRunMilli: number;
     try {
       tarifs = tarifArg ? [intArg('cout-par-1000', tarifArg)] : TARIFS_HYPOTHESES;
+      coutParRunMilli = runArg
+        ? centsArgToMilli('cout-par-run', runArg)
+        : COUT_PAR_RUN_HYPOTHESE_MILLI;
     } catch (err) {
       return fail(err);
     }
-    console.log(formatVerifPlan(cibles, etape, campagne, maxItems, tarifs));
+    console.log(formatVerifPlan(cibles, etape, campagne, maxItems, tarifs, coutParRunMilli));
+    if (!runArg) console.log('(frais par run inconnus : hypothèse 5 c, abotapi 0,05 $)');
     if (!tarifArg)
       console.log('(tarif réel inconnu : estimations aux hypothèses 2,60 € et 3,57 € / 1 000)');
     return 0;
@@ -84,9 +104,11 @@ async function main(): Promise<number> {
 
   let env;
   let tarif: number;
+  let coutParRunMilli: number;
   try {
     env = requireSeedEnv(process.env);
     tarif = intArg('cout-par-1000', tarifArg);
+    coutParRunMilli = centsArgToMilli('cout-par-run', runArg);
   } catch (err) {
     return fail(err);
   }
@@ -102,6 +124,7 @@ async function main(): Promise<number> {
       campagne,
       cibles,
       coutParResultatMilli: tarif,
+      coutParRunMilli,
       maxItems,
       resolver: new BrandResolver(
         cibles.map((c) => c.marque),

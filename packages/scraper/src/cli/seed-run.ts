@@ -37,6 +37,19 @@ const intArg = (name: string, v: string | undefined, def?: number): number => {
   return n;
 };
 
+/** Centimes (décimaux acceptés : « 4.6 ») → milli. */
+const centsArgToMilli = (name: string, v: string | undefined): number => {
+  const n = v === undefined || v.trim() === '' ? NaN : Number(v.replace(',', '.'));
+  if (!Number.isFinite(n) || n < 0)
+    throw new SeedConfigError(
+      `--${name} (ou SEED_COUT_PAR_RUN_CENTS) obligatoire : frais fixes par run, en centimes d'euro`,
+    );
+  return Math.round(n * 1000);
+};
+
+/** Hypothèse de dry-run : frais de démarrage abotapi (0,05 $ ≈ 5 c). */
+const COUT_PAR_RUN_HYPOTHESE_MILLI = 5000;
+
 const ghEscape = (s: string) => s.replace(/%/g, '%25').replace(/\r/g, '%0D').replace(/\n/g, '%0A');
 
 /** Tarifs simulés en dry-run quand le tarif réel n'est pas encore connu (doc 2b, section 3). */
@@ -49,6 +62,7 @@ async function main(): Promise<number> {
       'dry-run': { type: 'boolean', default: false },
       'budget-max': { type: 'string' },
       'cout-par-1000': { type: 'string' },
+      'cout-par-run': { type: 'string' },
       cellules: { type: 'string', default: 'seed/cellules.json' },
       cellule: { type: 'string' },
       campagne: { type: 'string' },
@@ -76,6 +90,7 @@ async function main(): Promise<number> {
     return configError(new SeedConfigError('--execute et --dry-run sont exclusifs'));
   const campagne = values.campagne ?? campagneDuMois('seed', new Date());
   const tarifEnv = process.env['SEED_COUT_PAR_1000_CENTS'];
+  const runArg = values['cout-par-run'] ?? process.env['SEED_COUT_PAR_RUN_CENTS'];
 
   let configs;
   let plafondCents: number;
@@ -98,20 +113,26 @@ async function main(): Promise<number> {
   if (!values.execute) {
     const tarifArg = values['cout-par-1000'] ?? tarifEnv;
     let tarifs: number[];
+    let coutParRunMilli: number;
     try {
       tarifs = tarifArg ? [intArg('cout-par-1000', tarifArg)] : TARIFS_HYPOTHESES;
+      coutParRunMilli = runArg
+        ? centsArgToMilli('cout-par-run', runArg)
+        : COUT_PAR_RUN_HYPOTHESE_MILLI;
     } catch (err) {
       return configError(err);
     }
     const plan = planSeedRun(configs, {
       plafondCents,
       tarifs,
+      coutParRunMilli,
       batchSize,
       maxDecouverteParCellule: maxDecouverte,
     });
     console.log(formatSeedPlan(plan, plafondCents, campagne));
     if (!tarifArg)
       console.log('(tarif réel inconnu : estimations aux hypothèses 2,60 € et 3,57 € / 1 000)');
+    if (!runArg) console.log('(frais par run inconnus : hypothèse 5 c, abotapi 0,05 $)');
     return 0;
   }
 
@@ -123,7 +144,11 @@ async function main(): Promise<number> {
     const coutParResultatMilli = intArg('cout-par-1000', values['cout-par-1000'] ?? tarifEnv);
     if (coutParResultatMilli === 0)
       throw new SeedConfigError('--cout-par-1000 doit être > 0 (tarif réel de l’acteur)');
-    budget = budgetDepuisPlafond(plafondCents, coutParResultatMilli);
+    budget = budgetDepuisPlafond(
+      plafondCents,
+      coutParResultatMilli,
+      centsArgToMilli('cout-par-run', runArg),
+    );
   } catch (err) {
     return configError(err);
   }

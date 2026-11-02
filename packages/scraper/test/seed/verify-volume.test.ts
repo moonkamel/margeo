@@ -35,13 +35,13 @@ describe('ciblesVerification', () => {
 
   it('dry-run : URL, coût max par tarif, alerte si l’arrêt dur serait dépassé', () => {
     const reste = ciblesVerification(configs, 'reste');
-    const texte = formatVerifPlan(reste, 'reste', 'verify-2026-11', 200, [357]);
+    const texte = formatVerifPlan(reste, 'reste', 'verify-2026-11', 200, [357], 0);
     expect(texte).toMatch(/DRY-RUN/);
     expect(texte).toMatch(/plafond 12,00 €, arrêt dur 11,00 €/);
     // 12 × 200 × 0,357 c = 8,57 € : sous l'arrêt dur (15 cellules : 10,71 € < 11 €).
     expect(texte).toMatch(/8,57 € si toutes l'étaient$/m);
     // 12 × 200 × 0,5 c = 12,00 € > 11 € → alerte.
-    expect(formatVerifPlan(reste, 'reste', 'verify-2026-11', 200, [500])).toMatch(
+    expect(formatVerifPlan(reste, 'reste', 'verify-2026-11', 200, [500], 0)).toMatch(
       /12,00 € si toutes l'étaient ⚠️ dépasse l'arrêt dur de 11,00 €/,
     );
     expect(texte.trim().endsWith('dry-run, aucune dépense')).toBe(true);
@@ -74,6 +74,7 @@ describe('runVerifyVolume — exécution en mock', () => {
       campagne: 'verify-2026-11',
       cibles,
       coutParResultatMilli: tarif,
+      coutParRunMilli: 0,
       maxItems: 250,
       resolver: new BrandResolver(
         cibles.map((c) => c.marque),
@@ -150,11 +151,30 @@ describe('runVerifyVolume — exécution en mock', () => {
     expect(repo.totalSpent()).toBe(VERIFY_ARRET_DUR_CENTS * 1000);
   });
 
+  it('frais fixes par run comptés : 200 résultats × 0,26 c + 5 c = 57 c par cellule', async () => {
+    const a = cible('Sézane');
+    catalogue.set(a.url as string, items('Sézane', 200));
+    const r = await runVerifyVolume({
+      campagne: 'verify-2026-11',
+      cibles: [a],
+      coutParResultatMilli: 260,
+      coutParRunMilli: 5000,
+      maxItems: 200,
+      resolver: new BrandResolver(['Sézane'], []),
+      repo,
+      search: async (url, max) => (catalogue.get(url) ?? []).slice(0, max),
+      marqueOf: (raw) => (raw as { marque: string }).marque,
+    });
+    expect(r.resultats[0]?.coutMilli).toBe(57_000);
+    expect(repo.totalSpent()).toBe(57_000);
+  });
+
   it('échec de l’acteur : coût maximal compté par prudence, arrêt', async () => {
     const r = await runVerifyVolume({
       campagne: 'verify-2026-11',
       cibles: [cible('Sézane'), cible('Maje')],
       coutParResultatMilli: 260,
+      coutParRunMilli: 0,
       maxItems: 250,
       resolver: new BrandResolver(['Sézane', 'Maje'], []),
       repo,

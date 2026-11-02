@@ -50,13 +50,14 @@ export function ciblesVerification(configs: readonly CelluleConfig[], etape: Eta
     }));
 }
 
-export function verifyBudget(coutParResultatMilli: number): BudgetConfig {
+export function verifyBudget(coutParResultatMilli: number, coutParRunMilli: number): BudgetConfig {
   // Imputé sur l'enveloppe « découverte » de la campagne de vérification.
   return {
     hardStopCents: VERIFY_ARRET_DUR_CENTS,
     suiviCents: 0,
     decouverteCents: VERIFY_ARRET_DUR_CENTS,
     coutParResultatMilli,
+    coutParRunMilli,
   };
 }
 
@@ -68,6 +69,7 @@ export function formatVerifPlan(
   campagne: string,
   maxItems: number,
   tarifs: readonly number[],
+  coutParRunMilli: number,
 ): string {
   const l: string[] = [];
   l.push(
@@ -88,12 +90,12 @@ export function formatVerifPlan(
   l.push('');
   l.push(`Cellules mesurables : ${mesurables} / ${cibles.length}`);
   for (const t of tarifs) {
-    const parCellule = maxItems * t;
+    const parCellule = maxItems * t + coutParRunMilli; // un run par cellule
     const total = parCellule * mesurables;
     const totalPrevu = parCellule * cibles.length;
     const arret = VERIFY_ARRET_DUR_CENTS * MILLI_PAR_CENTIME;
     l.push(
-      `  Tarif ${eur(t)} / 1 000 : ${formatMilli(parCellule)} max par cellule ; ` +
+      `  Tarif ${eur(t)} / 1 000 + ${formatMilli(coutParRunMilli)} par run : ${formatMilli(parCellule)} max par cellule ; ` +
         `${formatMilli(total)} pour les mesurables, ${formatMilli(totalPrevu)} si toutes l'étaient` +
         (totalPrevu > arret ? ` ⚠️ dépasse l'arrêt dur de ${eur(VERIFY_ARRET_DUR_CENTS)}` : ''),
     );
@@ -118,6 +120,8 @@ export interface VerifyRunOptions {
   campagne: string;
   cibles: readonly VerifCible[];
   coutParResultatMilli: number;
+  /** Frais fixes par run, en milli. */
+  coutParRunMilli: number;
   maxItems: number;
   resolver: BrandResolver;
   repo: Pick<SeedRepository, 'campaignSpent' | 'startRun' | 'recordSpend' | 'finishRun'>;
@@ -145,7 +149,7 @@ export async function runVerifyVolume(o: VerifyRunOptions): Promise<VerifyRunRes
     );
   }
   const ledger = new BudgetLedger(
-    verifyBudget(o.coutParResultatMilli),
+    verifyBudget(o.coutParResultatMilli, o.coutParRunMilli),
     await o.repo.campaignSpent(o.campagne),
   );
   const runId = await o.repo.startRun(o.campagne, VERIFY_ARRET_DUR_CENTS, now());

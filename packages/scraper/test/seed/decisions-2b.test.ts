@@ -29,35 +29,36 @@ const EUR = 100_000;
 
 describe('budgetDepuisPlafond — --budget-max est le PLAFOND', () => {
   it('plafond 100 € → arrêt dur 80 €, suivi 68 €, découverte 12 €', () => {
-    expect(budgetDepuisPlafond(10_000, 260)).toEqual({
+    expect(budgetDepuisPlafond(10_000, 260, 5000)).toEqual({
       hardStopCents: 8000,
       suiviCents: 6800,
       decouverteCents: 1200,
       coutParResultatMilli: 260,
+      coutParRunMilli: 5000,
     });
   });
 
   it('les enveloppes tiennent dans l’arrêt dur (BudgetLedger les accepte)', () => {
     for (const plafond of [1, 99, 1200, 4800, 10_000, 12_345]) {
-      const b = budgetDepuisPlafond(plafond, 260);
+      const b = budgetDepuisPlafond(plafond, 260, 0);
       expect(b.suiviCents + b.decouverteCents).toBe(b.hardStopCents);
       expect(() => new BudgetLedger(b)).not.toThrow();
     }
   });
 
   it('plafond invalide refusé', () => {
-    expect(() => budgetDepuisPlafond(0, 260)).toThrow(RangeError);
-    expect(() => budgetDepuisPlafond(10.5, 260)).toThrow(RangeError);
+    expect(() => budgetDepuisPlafond(0, 260, 0)).toThrow(RangeError);
+    expect(() => budgetDepuisPlafond(10.5, 260, 0)).toThrow(RangeError);
   });
 
   it('dépense bornée à 80,00 € : un appel qui ferait 80,01 € est refusé', () => {
-    const l = new BudgetLedger(budgetDepuisPlafond(10_000, 1000)); // 1 c par résultat
+    const l = new BudgetLedger(budgetDepuisPlafond(10_000, 1000, 0)); // 1 c par résultat
     const r = l.reserve('suivi', 7999);
     if (typeof r === 'string') throw new Error('réservation refusée');
     l.commit(r, 7999);
     expect(l.reserve('suivi', 2)).toBe('budget_cap'); // 80,01 €
     expect(l.totalMilli).toBe(7999 * 1000);
-    const l2 = new BudgetLedger(budgetDepuisPlafond(10_000, 1000));
+    const l2 = new BudgetLedger(budgetDepuisPlafond(10_000, 1000, 0));
     const r2 = l2.reserve('suivi', 8000);
     if (typeof r2 === 'string') throw new Error('réservation refusée');
     l2.commit(r2, 8000);
@@ -66,7 +67,7 @@ describe('budgetDepuisPlafond — --budget-max est le PLAFOND', () => {
   });
 
   it('découverte coupée à 12 € pendant que le suivi continue', () => {
-    const l = new BudgetLedger(budgetDepuisPlafond(10_000, 1000));
+    const l = new BudgetLedger(budgetDepuisPlafond(10_000, 1000, 0));
     const d = l.reserve('decouverte', 1200);
     if (typeof d === 'string') throw new Error('réservation refusée');
     l.commit(d, 1200);
@@ -99,6 +100,7 @@ describe('planSeedRun — dry-run (aucun appel, aucune base)', () => {
     const plan = planSeedRun(readCellules(path), {
       plafondCents: 10_000,
       tarifs: [260, 357],
+      coutParRunMilli: 0,
       batchSize: 50,
       maxDecouverteParCellule: 5,
     });
@@ -115,6 +117,7 @@ describe('planSeedRun — dry-run (aucun appel, aucune base)', () => {
     const plan = planSeedRun(readCellules(path), {
       plafondCents: 10_000,
       tarifs: [260],
+      coutParRunMilli: 0,
       batchSize: 50,
       maxDecouverteParCellule: 5,
     });
@@ -133,6 +136,7 @@ describe('planSeedRun — dry-run (aucun appel, aucune base)', () => {
     const [t] = planSeedRun(readCellules(path), {
       plafondCents: 10_000,
       tarifs: [1000],
+      coutParRunMilli: 0,
       batchSize: 50,
       maxDecouverteParCellule: 5,
     }).tarifs;
@@ -161,7 +165,7 @@ describe('runSeed — rattachement par catalogue + marque (jamais le libellé)',
     runSeed({
       campagne: 'test',
       cellules: [SEZANE],
-      budget: budgetDepuisPlafond(10_000, 1000),
+      budget: budgetDepuisPlafond(10_000, 1000, 0),
       plafondCents: 10_000,
       brandResolver: ALIAS,
       source,
@@ -325,5 +329,138 @@ describe('runSeed — rattachement par catalogue + marque (jamais le libellé)',
 
   it('CATALOGUE_TEST reste distinct des catalogues réels', () => {
     expect([13, 79]).not.toContain(CATALOGUE_TEST);
+  });
+});
+
+describe('frais fixes par run — comptés dans le budget (décision du 2026-11-04)', () => {
+  const T0 = new Date('2026-11-10T05:00:00Z').getTime();
+  const SEZANE: Cellule = cellule('Sweats et sweats à capuche (F)', 'Sézane', { catalogId: 13 });
+  const suivie = (i: number) => ({
+    id: `t${i}`,
+    plateforme: 'VINTED' as const,
+    externalId: `t${i}`,
+    url: `https://www.vinted.fr/items/t${i}-x`,
+    categorie: SEZANE.categorie,
+    marque: 'Sézane',
+    taille: null,
+    prixInitialCents: 1000,
+    prixCourantCents: 1000,
+    etat: 'BON' as const,
+    statut: 'ACTIVE' as const,
+    premiereVuAt: new Date(T0 - 48 * 3600_000),
+    derniereVuAt: new Date(T0 - 48 * 3600_000),
+    derniereVerifAt: new Date(T0 - 48 * 3600_000),
+    echecsConsecutifs: 0,
+    soldAt: null,
+    soldPrixCents: null,
+    soldSource: null,
+    catalogIdRecherche: 13,
+    subcategoryId: 529,
+    subcategoryLabel: "Pulls d'hiver",
+  });
+
+  it('ledger : coût d’un run = frais fixes + résultats × tarif', () => {
+    const l = new BudgetLedger(budgetDepuisPlafond(10_000, 260, 5000));
+    expect(l.costFor(0)).toBe(5000);
+    expect(l.costFor(50)).toBe(5000 + 50 * 260);
+    // Reliquat insuffisant pour les seuls frais fixes → aucun résultat finançable.
+    const l2 = new BudgetLedger(budgetDepuisPlafond(10_000, 260, 5000), {
+      suivi: 7996 * 1000,
+      decouverte: 0,
+    });
+    expect(l2.affordableResultats('suivi')).toBe(0);
+  });
+
+  it('3 runs de 50 résultats à 2,60 $ / 1 000 + 0,05 $ par run = 54 c (et non 39 c)', async () => {
+    const repo = new MemoryRepo();
+    const source = new FakeSource();
+    for (let i = 0; i < 150; i++) {
+      const t = suivie(i);
+      repo.state.tracked.set(t.id, t);
+      source.monde.set(t.url, listing({ externalId: t.externalId, marque: 'Sézane' }));
+    }
+    await runSeed({
+      campagne: 'frais',
+      cellules: [{ ...SEZANE, cibleActives: 150 }], // parc complet : aucune découverte
+      budget: budgetDepuisPlafond(10_000, 260, 5000),
+      source,
+      repo,
+      batchSize: 50,
+      now: () => new Date(T0),
+    });
+    expect(source.appels).toEqual([
+      { type: 'recheck', taille: 50 },
+      { type: 'recheck', taille: 50 },
+      { type: 'recheck', taille: 50 },
+    ]);
+    expect(repo.spendLog.map((s) => s.milli)).toEqual([18_000, 18_000, 18_000]);
+    expect(repo.totalSpent()).toBe(54 * 1000); // SeedRun : 54 c au total, frais inclus
+  });
+
+  it('runs sans résultat (frais fixes seuls) : l’arrêt dur à 80 € se déclenche, jamais dépassé', async () => {
+    const repo = new MemoryRepo();
+    for (let i = 0; i < 100; i++) {
+      const t = suivie(i);
+      repo.state.tracked.set(t.id, t);
+    }
+    // Source qui ne facture AUCUN résultat : seule la part fixe (1 € par run) est dépensée.
+    const appels: number[] = [];
+    const source = {
+      async recheck(urls: readonly string[]) {
+        appels.push(urls.length);
+        return {
+          results: urls.map((url) => ({
+            url,
+            outcome: 'active' as const,
+            listing: listing({ externalId: url.split('/').pop() ?? 'x', marque: 'Sézane' }),
+            payload: {},
+          })),
+          resultatsFactures: 0,
+        };
+      },
+      async discover() {
+        return { listings: [], resultatsFactures: 0 };
+      },
+    };
+    const budget = budgetDepuisPlafond(10_000, 260, 100_000); // 1 € par run
+    let clock = T0;
+    let dernier;
+    for (let jour = 0; jour < 20; jour++) {
+      dernier = await runSeed({
+        campagne: 'frais-fixes',
+        cellules: [{ ...SEZANE, cibleActives: 100 }],
+        budget,
+        plafondCents: 10_000,
+        source,
+        repo,
+        batchSize: 10,
+        now: () => new Date(clock),
+      });
+      expect(repo.totalSpent()).toBeLessThanOrEqual(80 * EUR);
+      if (dernier.statut === 'BUDGET_STOPPED') break;
+      clock += 24 * 3600_000;
+    }
+    expect(dernier?.statut).toBe('BUDGET_STOPPED');
+    // Chaque run réserve 1 € + 10 × 0,26 c : le 80e ne tient plus → 79 runs, 79,00 €.
+    expect(appels).toHaveLength(79);
+    expect(repo.totalSpent()).toBe(79 * EUR);
+    expect(dernier?.alertes[0]).toMatch(/^ARRÊT DUR : Budget seed à 80 %/);
+  });
+
+  it('dry-run : frais fixes affichés et inclus dans le coût journalier', () => {
+    const path = new URL('../../seed/cellules.json', import.meta.url).pathname;
+    const plan = planSeedRun(readCellules(path), {
+      plafondCents: 10_000,
+      tarifs: [260],
+      coutParRunMilli: 5000,
+      batchSize: 50,
+      maxDecouverteParCellule: 5,
+    });
+    // 12 lots de suivi + 15 découvertes = 27 runs par jour au plus.
+    expect(plan.runsJourMax).toBe(27);
+    expect(plan.tarifs[0]?.suiviJourMilli).toBe(600 * 260 + 12 * 5000);
+    expect(formatSeedPlan(plan, 10_000, 'seed-2026-11')).toMatch(
+      /Runs par jour : 27 au plus × 0,05 € de frais fixes = 1,35 € par jour/,
+    );
   });
 });

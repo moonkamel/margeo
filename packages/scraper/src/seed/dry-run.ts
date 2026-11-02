@@ -18,6 +18,8 @@ export interface SeedPlanOptions {
   plafondCents: number;
   /** Tarifs à simuler, en centimes pour 1 000 résultats (ex. [260, 357]). */
   tarifs: readonly number[];
+  /** Frais fixes par run (démarrage de l'acteur), en milli. */
+  coutParRunMilli: number;
   batchSize: number;
   maxDecouverteParCellule: number;
   joursParMois?: number;
@@ -47,6 +49,9 @@ export interface SeedPlan {
   crawlables: number;
   suiviJour: number;
   lotsJour: number;
+  /** Runs par jour au maximum (lots de suivi + une découverte par cellule). */
+  runsJourMax: number;
+  coutParRunMilli: number;
   decouverteJourMax: number;
   tarifs: SeedPlanTarif[];
 }
@@ -67,10 +72,15 @@ export function planSeedRun(
   }));
   const suiviJour = cellules.reduce((a, c) => a + c.cibleActives, 0);
   const decouverteJourMax = cellules.reduce((a, c) => a + c.decouverteMaxJour, 0);
+  const lotsJour = Math.ceil(suiviJour / opts.batchSize);
   const tarifs = opts.tarifs.map((t) => {
-    const budget = budgetDepuisPlafond(opts.plafondCents, t);
-    const suiviJourMilli = suiviJour * t;
-    const decouverteJourMaxMilli = Math.min(decouverteJourMax * t, budget.decouverteCents * 1000);
+    const budget = budgetDepuisPlafond(opts.plafondCents, t, opts.coutParRunMilli);
+    // Frais fixes : un run par lot de re-vérification, un run de découverte par cellule.
+    const suiviJourMilli = suiviJour * t + lotsJour * opts.coutParRunMilli;
+    const decouverteJourMaxMilli = Math.min(
+      decouverteJourMax * t + cellules.length * opts.coutParRunMilli,
+      budget.decouverteCents * 1000,
+    );
     const parJour = suiviJourMilli + decouverteJourMaxMilli;
     const arret = budget.hardStopCents * MILLI_PAR_CENTIME;
     const jourArretDur = parJour === 0 ? null : Math.ceil(arret / parJour);
@@ -87,7 +97,9 @@ export function planSeedRun(
     cellules,
     crawlables: cellules.filter((c) => c.refus.length === 0).length,
     suiviJour,
-    lotsJour: Math.ceil(suiviJour / opts.batchSize),
+    lotsJour,
+    runsJourMax: lotsJour + cellules.length,
+    coutParRunMilli: opts.coutParRunMilli,
     decouverteJourMax,
     tarifs,
   };
@@ -111,6 +123,9 @@ export function formatSeedPlan(plan: SeedPlan, plafondCents: number, campagne: s
   l.push('');
   l.push(
     `Volume maximal par jour (parcs complets) : ${plan.suiviJour} re-vérifications en ${plan.lotsJour} lots, + ${plan.decouverteJourMax} découvertes au plus`,
+  );
+  l.push(
+    `Runs par jour : ${plan.runsJourMax} au plus × ${formatMilli(plan.coutParRunMilli)} de frais fixes = ${formatMilli(plan.runsJourMax * plan.coutParRunMilli)} par jour`,
   );
   for (const t of plan.tarifs) {
     const b = t.budget;

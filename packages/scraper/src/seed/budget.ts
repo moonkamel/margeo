@@ -6,8 +6,9 @@
  * ce qui évite tout flottant dans le suivi de la dépense.
  *
  * Règles :
- *  1. Avant chaque appel facturable, on RÉSERVE son coût maximal (nombre max de résultats
- *     × coût unitaire). La réservation est refusée si elle ferait dépasser le plafond total :
+ *  1. Avant chaque appel facturable, on RÉSERVE son coût maximal : frais fixes du run (démarrage
+ *     de l'acteur) + nombre max de résultats × coût unitaire. Un run sans résultat coûte donc
+ *     ses frais fixes (décision du 2026-11-04 : faille corrigée, ils n'étaient pas comptés). La réservation est refusée si elle ferait dépasser le plafond total :
  *     la dépense peut atteindre exactement le plafond (48,00 €), jamais le dépasser (48,01 €).
  *  2. Deux enveloppes : suivi (re-vérification) et découverte. La découverte est coupée dès
  *     que SON enveloppe est pleine.
@@ -26,6 +27,8 @@ export interface BudgetConfig {
   decouverteCents: number;
   /** Coût d'un résultat facturé, en milli (= centimes pour 1 000 résultats). */
   coutParResultatMilli: number;
+  /** Frais fixes d'un run (démarrage de l'acteur), en milli (5 c = 5 000). Obligatoire. */
+  coutParRunMilli: number;
 }
 
 export interface BudgetSpent {
@@ -98,16 +101,17 @@ export class BudgetLedger {
     if (envelope === 'decouverte' && this.decouverteCoupeeMotif) return 0;
     const unit = this.config.coutParResultatMilli;
     const room =
-      envelope === 'decouverte'
+      (envelope === 'decouverte'
         ? Math.min(this.remainingMilli, this.envelopeCap.decouverte - this.spent.decouverte)
-        : this.remainingMilli;
+        : this.remainingMilli) - this.config.coutParRunMilli;
+    if (room < 0) return 0; // même un run sans résultat ne tient plus
     if (unit === 0) return Number.MAX_SAFE_INTEGER;
-    return Math.max(0, Math.floor(room / unit));
+    return Math.floor(room / unit);
   }
 
-  /** Coût maximal d'un appel pouvant facturer jusqu'à `maxResultats` résultats. */
+  /** Coût (maximal) d'un run facturant jusqu'à `maxResultats` résultats, frais fixes inclus. */
   costFor(maxResultats: number): number {
-    return maxResultats * this.config.coutParResultatMilli;
+    return this.config.coutParRunMilli + maxResultats * this.config.coutParResultatMilli;
   }
 
   reserve(envelope: Envelope, maxResultats: number): Reservation | ReserveRefusal {
@@ -176,6 +180,7 @@ export const PART_SUIVI = 0.85;
 export function budgetDepuisPlafond(
   plafondCents: number,
   coutParResultatMilli: number,
+  coutParRunMilli: number,
 ): BudgetConfig {
   if (!Number.isInteger(plafondCents) || plafondCents <= 0) {
     throw new RangeError(`Plafond invalide : ${plafondCents}`);
@@ -187,5 +192,6 @@ export function budgetDepuisPlafond(
     suiviCents,
     decouverteCents: hardStopCents - suiviCents,
     coutParResultatMilli,
+    coutParRunMilli,
   };
 }

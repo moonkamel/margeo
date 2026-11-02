@@ -7,6 +7,7 @@ const CONFIG: BudgetConfig = {
   suiviCents: 3000,
   decouverteCents: 1800,
   coutParResultatMilli: 1000,
+  coutParRunMilli: 0, // frais par run testés dans decisions-2b.test.ts
 };
 const EUR = 100_000; // milli par euro
 

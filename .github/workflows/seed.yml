@@ -32,6 +32,8 @@ jobs:
       DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
       APIFY_ACTOR_ID: ${{ vars.APIFY_ACTOR_ID }}
       SEED_COUT_PAR_1000_CENTS: ${{ vars.SEED_COUT_PAR_1000_CENTS }}
+      # Frais fixes par run de l'acteur (démarrage), en centimes d'euro : comptés dans l'arrêt dur.
+      SEED_COUT_PAR_RUN_CENTS: ${{ vars.SEED_COUT_PAR_RUN_CENTS }}
       # Plafond mensuel en centimes ; arrêt dur à 80 % (8 000 = 80 €), campagne seed-YYYY-MM auto.
       SEED_BUDGET_CENTS_MAX: ${{ vars.SEED_BUDGET_CENTS_MAX || '10000' }}
     steps:
@@ -43,6 +45,7 @@ jobs:
           if [ -z "$DATABASE_URL" ]; then echo "::error title=Seed non configuré::SEED_DATABASE_URL manquant, configurer le secret"; missing=1; fi
           if [ -z "$APIFY_ACTOR_ID" ]; then echo "::error title=Seed non configuré::APIFY_ACTOR_ID manquant, configurer la variable"; missing=1; fi
           if [ -z "$SEED_COUT_PAR_1000_CENTS" ]; then echo "::error title=Seed non configuré::SEED_COUT_PAR_1000_CENTS manquant (tarif réel de l'acteur, en centimes d'euro)"; missing=1; fi
+          if [ -z "$SEED_COUT_PAR_RUN_CENTS" ]; then echo "::error title=Seed non configuré::SEED_COUT_PAR_RUN_CENTS manquant (frais fixes par run de l'acteur, en centimes d'euro)"; missing=1; fi
           exit $missing
 
       - uses: actions/checkout@v4
