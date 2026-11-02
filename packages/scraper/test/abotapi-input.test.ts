@@ -5,7 +5,7 @@ import {
   abotapiSearchInput,
   abotapiUrlInput,
   ABOTAPI_INPUT_BUILDERS,
-  ApifyDriver,
+  ApifyAsyncRunner,
   buildCellSearchUrl,
   inputBuildersPourActeur,
   ScraperError,
@@ -14,7 +14,6 @@ import { ApifySeedSource } from '../src/seed/index.js';
 import { cellule } from './seed/fake-source.js';
 
 const BASE = 'https://api.apify.test';
-const ENDPOINT = `${BASE}/v2/acts/abotapi~vinted-fr-scraper/run-sync-get-dataset-items`;
 const server = setupServer();
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 afterEach(() => server.resetHandlers());
@@ -93,50 +92,69 @@ describe('sélection des builders par acteur', () => {
   });
 });
 
-describe('corps réellement envoyé à Apify (driver + source du seed, en mock)', () => {
+describe('corps réellement envoyé à Apify (runner asynchrone + source du seed, en mock)', () => {
+  const PLAFOND = { maxTotalChargeUsd: 0.87 };
   const source = () =>
     new ApifySeedSource(
-      new ApifyDriver({
+      new ApifyAsyncRunner({
         actorId: 'abotapi/vinted-fr-scraper',
         token: 't',
         baseUrl: BASE,
-        inputBuilders: inputBuildersPourActeur('abotapi/vinted-fr-scraper'),
+        timeoutSecs: 600,
         sleep: async () => {},
       }),
+      inputBuildersPourActeur('abotapi/vinted-fr-scraper'),
     );
   const capture = () => {
-    const corps: unknown[] = [];
+    const envois: { corps: unknown; params: Record<string, string> }[] = [];
     server.use(
-      http.post(ENDPOINT, async ({ request }) => {
-        corps.push(await request.json());
-        return HttpResponse.json([]);
+      http.post(`${BASE}/v2/acts/abotapi~vinted-fr-scraper/runs`, async ({ request }) => {
+        envois.push({
+          corps: await request.json(),
+          params: Object.fromEntries(new URL(request.url).searchParams),
+        });
+        return HttpResponse.json({ data: { id: 'r', status: 'SUCCEEDED', defaultDatasetId: 'd' } });
       }),
+      http.get(`${BASE}/v2/actor-runs/r`, () =>
+        HttpResponse.json({ data: { id: 'r', status: 'SUCCEEDED', defaultDatasetId: 'd' } }),
+      ),
+      http.get(`${BASE}/v2/datasets/d/items`, () => HttpResponse.json([])),
     );
-    return corps;
+    return envois;
   };
 
-  it('découverte d’une cellule', async () => {
-    const corps = capture();
-    await source().discover(cellule('Sweats et pulls (H)', 'Ralph Lauren', { catalogId: 79 }), 5);
-    expect(corps).toStrictEqual([
+  it('découverte d’une cellule : input strict + plafonds de plateforme', async () => {
+    const envois = capture();
+    await source().discover(
+      cellule('Sweats et pulls (H)', 'Ralph Lauren', { catalogId: 79 }),
+      5,
+      PLAFOND,
+    );
+    expect(envois).toStrictEqual([
       {
-        mode: 'search',
-        queries: ['Ralph Lauren'],
-        categoryId: '79',
-        maxItems: 5,
-        fetchDetails: true,
-        sortBy: 'newest_first',
+        corps: {
+          mode: 'search',
+          queries: ['Ralph Lauren'],
+          categoryId: '79',
+          maxItems: 5,
+          fetchDetails: true,
+          sortBy: 'newest_first',
+        },
+        params: { timeout: '600', memory: '1024', maxItems: '5', maxTotalChargeUsd: '0.87' },
       },
     ]);
   });
 
   it('re-vérification d’un lot (URL canoniques)', async () => {
-    const corps = capture();
-    await source().recheck([
-      'https://www.vinted.fr/items/123-pull?referrer=x',
-      'https://www.vinted.fr/items/456-cardigan',
-    ]);
-    expect(corps).toStrictEqual([
+    const envois = capture();
+    await source().recheck(
+      [
+        'https://www.vinted.fr/items/123-pull?referrer=x',
+        'https://www.vinted.fr/items/456-cardigan',
+      ],
+      PLAFOND,
+    );
+    expect(envois.map((e) => e.corps)).toStrictEqual([
       {
         mode: 'url',
         urls: ['https://www.vinted.fr/items/123-pull', 'https://www.vinted.fr/items/456-cardigan'],
@@ -144,5 +162,18 @@ describe('corps réellement envoyé à Apify (driver + source du seed, en mock)'
         fetchDetails: true,
       },
     ]);
+    expect(envois[0]?.params['maxItems']).toBe('2');
+  });
+
+  it('comptage (vérification du volume) : fetchDetails explicitement false', () => {
+    const b = inputBuildersPourActeur('abotapi/vinted-fr-scraper', 'comptage');
+    expect(b.search(buildCellSearchUrl(1242, 'Nike', null), 200)).toStrictEqual({
+      mode: 'search',
+      queries: ['Nike'],
+      categoryId: '1242',
+      maxItems: 200,
+      fetchDetails: false,
+      sortBy: 'newest_first',
+    });
   });
 });

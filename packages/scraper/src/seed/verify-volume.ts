@@ -10,10 +10,16 @@
  * - Arrêt : pilote sous le seuil, 0 résultat, ou budget de vérification atteint.
  */
 import type { BrandResolver } from './brand-alias.js';
-import { BudgetLedger, formatMilli, MILLI_PAR_CENTIME, type BudgetConfig } from './budget.js';
+import {
+  BudgetLedger,
+  formatMilli,
+  MILLI_PAR_CENTIME,
+  plafondRunUsd,
+  type BudgetConfig,
+} from './budget.js';
 import type { CelluleConfig } from './config.js';
 import { buildCellSearchUrl } from '../url.js';
-import type { SeedRepository } from './types.js';
+import type { PlafondAppel, SeedRepository } from './types.js';
 
 export const VERIFY_PLAFOND_CENTS = 1200;
 export const VERIFY_ARRET_DUR_CENTS = 1100;
@@ -112,7 +118,8 @@ export interface VerifResultat {
   /** Annonces dont la marque se rattache à la cellule. */
   marque: number;
   plafondAtteint: boolean;
-  verdict: 'OK' | 'SOUS_SEUIL' | 'ZERO';
+  /** INCOMPLET : run coupé avant d'avoir atteint le seuil — volume réel inconnu. */
+  verdict: 'OK' | 'SOUS_SEUIL' | 'ZERO' | 'INCOMPLET';
   coutMilli: number;
 }
 
@@ -125,8 +132,15 @@ export interface VerifyRunOptions {
   maxItems: number;
   resolver: BrandResolver;
   repo: Pick<SeedRepository, 'campaignSpent' | 'startRun' | 'recordSpend' | 'finishRun'>;
-  /** Recherche brute plafonnée (Apify) : renvoie les items bruts. */
-  search: (url: string, maxItems: number) => Promise<unknown[]>;
+  /**
+   * Recherche brute plafonnée (Apify) : items bruts + facturation. `plafond` est transmis à la
+   * plateforme (maxTotalChargeUsd), dérivé de la réservation (× 1,5, en dollars).
+   */
+  search: (
+    url: string,
+    maxItems: number,
+    plafond: PlafondAppel,
+  ) => Promise<{ items: unknown[]; coutReelMilli?: number; runCoupe?: boolean }>;
   /** Marque brute d'un item (normalisation). */
   marqueOf: (raw: unknown) => string | null;
   now?: () => Date;
@@ -165,22 +179,37 @@ export async function runVerifyVolume(o: VerifyRunOptions): Promise<VerifyRunRes
       arret = `ARRÊT DUR : budget de vérification de ${eur(VERIFY_ARRET_DUR_CENTS)} atteint avant ${c.nom}.`;
       break;
     }
-    let items: unknown[];
+    let reponse;
     try {
-      items = await o.search(c.url as string, o.maxItems);
+      reponse = await o.search(c.url as string, o.maxItems, {
+        maxTotalChargeUsd: plafondRunUsd(r.maxMilli),
+      });
     } catch (err) {
-      ledger.commit(r, o.maxItems); // prudence : coût maximal compté
+      ledger.commitMilli(r, r.maxMilli); // prudence : coût maximal compté
       await o.repo.recordSpend(runId, 'decouverte', r.maxMilli, o.maxItems);
       erreurs++;
       arret = `Échec de la mesure de ${c.nom} : ${String(err)}`;
       break;
     }
-    const { milli } = ledger.commit(r, items.length);
+    const items = reponse.items;
+    const estime = ledger.costFor(items.length);
+    const { milli } = ledger.commitMilli(
+      r,
+      reponse.runCoupe
+        ? Math.max(r.maxMilli, estime)
+        : Math.max(estime, reponse.coutReelMilli ?? 0),
+    );
     await o.repo.recordSpend(runId, 'decouverte', milli, items.length);
     const marque = items.filter((raw) => o.resolver.resolve(o.marqueOf(raw)) === c.marque).length;
     const plafondAtteint = items.length >= o.maxItems;
-    const verdict =
-      items.length === 0 ? 'ZERO' : marque >= VERIFY_SEUIL_ACTIVES ? 'OK' : 'SOUS_SEUIL';
+    const verdict: VerifResultat['verdict'] =
+      marque >= VERIFY_SEUIL_ACTIVES
+        ? 'OK'
+        : reponse.runCoupe
+          ? 'INCOMPLET'
+          : items.length === 0
+            ? 'ZERO'
+            : 'SOUS_SEUIL';
     resultats.push({
       nom: c.nom,
       catalogId: c.catalogId as number,
@@ -191,10 +220,13 @@ export async function runVerifyVolume(o: VerifyRunOptions): Promise<VerifyRunRes
       coutMilli: milli,
     });
     if (verdict !== 'OK') {
+      if (verdict === 'INCOMPLET') erreurs++;
       arret =
         verdict === 'ZERO'
           ? `Arrêt : 0 résultat pour ${c.nom} (catalogue ou libellé inattendu) — arbitrage requis.`
-          : `Arrêt : ${c.nom} sous le seuil (${marque} annonces de la marque < ${VERIFY_SEUIL_ACTIVES}) — catégorie à reconsidérer.`;
+          : verdict === 'INCOMPLET'
+            ? `Arrêt : run coupé pour ${c.nom} après ${items.length} résultats (${marque} de la marque) — volume non conclu, à relancer.`
+            : `Arrêt : ${c.nom} sous le seuil (${marque} annonces de la marque < ${VERIFY_SEUIL_ACTIVES}) — catégorie à reconsidérer.`;
       break;
     }
   }

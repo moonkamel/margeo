@@ -1,6 +1,12 @@
 import { ScraperError } from '../errors.js';
 import { BrandResolver } from './brand-alias.js';
-import { BudgetLedger, formatMilli, type BudgetConfig, type Envelope } from './budget.js';
+import {
+  BudgetLedger,
+  formatMilli,
+  plafondRunUsd,
+  type BudgetConfig,
+  type Envelope,
+} from './budget.js';
 import { premierDuMoisSuivant } from './campagne.js';
 import {
   firstObservation,
@@ -11,6 +17,8 @@ import {
 } from './state.js';
 import type {
   Cellule,
+  Facturation,
+  PlafondAppel,
   SeedRepository,
   SeedRunStatut,
   SeedRunSummary,
@@ -137,24 +145,33 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     plafond: formatMilli(ledger.snapshot().capMilli),
   });
 
-  /** Réserve, appelle, enregistre la dépense. Retourne null si le budget refuse l'appel. */
-  async function billed<T extends { resultatsFactures: number }>(
+  /**
+   * Réserve, appelle, enregistre la dépense. Retourne null si le budget refuse l'appel.
+   * Le plafond transmis à la plateforme découle de la réservation (× 1,5, en dollars).
+   * Coût enregistré : réservation maximale si le run est coupé ou en échec ; sinon le plus
+   * élevé entre le coût estimé (frais + résultats × tarif) et le coût réel rapporté.
+   */
+  async function billed<T extends Facturation>(
     envelope: Envelope,
     maxResultats: number,
-    call: () => Promise<T>,
+    call: (plafond: PlafondAppel) => Promise<T>,
   ): Promise<T | null> {
     const r = ledger.reserve(envelope, maxResultats);
     if (typeof r === 'string') return null;
     let result: T;
     try {
-      result = await call();
+      result = await call({ maxTotalChargeUsd: plafondRunUsd(r.maxMilli) });
     } catch (err) {
       // Appel en échec : on compte prudemment le coût maximal (la source a pu facturer).
       ledger.commit(r, maxResultats);
       await repo.recordSpend(runId, envelope, r.maxMilli, maxResultats);
       throw err;
     }
-    const { milli, anomalie } = ledger.commit(r, result.resultatsFactures);
+    const estime = ledger.costFor(result.resultatsFactures);
+    const { milli, anomalie } = ledger.commitMilli(
+      r,
+      result.runCoupe ? Math.max(r.maxMilli, estime) : Math.max(estime, result.coutReelMilli ?? 0),
+    );
     await repo.recordSpend(runId, envelope, milli, result.resultatsFactures);
     if (anomalie) {
       alertes.push(
@@ -191,7 +208,12 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
       i += taille;
       let reponse;
       try {
-        reponse = await billed('suivi', lot.length, () => source.recheck(lot.map((t) => t.url)));
+        reponse = await billed('suivi', lot.length, (plafond) =>
+          source.recheck(
+            lot.map((t) => t.url),
+            plafond,
+          ),
+        );
       } catch (err) {
         // Lot en échec : aucune annonce n'est modifiée (derniereVerifAt inchangée), toutes sont
         // reprises au run suivant. Coût maximal compté par prudence (billed).
@@ -207,6 +229,15 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
         continue;
       }
       if (!reponse) break;
+      if (reponse.runCoupe && !recheckTimeout) {
+        // Run coupé (timeout côté Apify) : même repli qu'un timeout synchrone.
+        recheckTimeout = true;
+        compteurs.erreurs++;
+        alertes.push(
+          `Run de re-vérification coupé sur un lot de ${lot.length} annonces : lots réduits à ${Math.min(tailleLot, TAILLE_LOT_REPLI)} pour ce run et le suivant.`,
+        );
+        tailleLot = Math.min(tailleLot, TAILLE_LOT_REPLI);
+      }
 
       const parUrl = new Map(reponse.results.map((r) => [r.url, r]));
       for (const t of lot) {
@@ -251,7 +282,9 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
       }
       let reponse;
       try {
-        reponse = await billed('decouverte', max, () => source.discover(cellule, max));
+        reponse = await billed('decouverte', max, (plafond) =>
+          source.discover(cellule, max, plafond),
+        );
       } catch (err) {
         compteurs.erreurs++;
         celluleLog(key).erreurs++;

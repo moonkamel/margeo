@@ -107,18 +107,35 @@ export interface SubcategoryMapping {
   libelle: string;
 }
 
+/** Plafond de coût d'un appel, transmis à la plateforme (Apify `maxTotalChargeUsd`). */
+export interface PlafondAppel {
+  maxTotalChargeUsd: number;
+}
+
+/** Facturation déclarée par un appel. */
+export interface Facturation {
+  /** Résultats facturés (base du coût estimé : frais du run + résultats × tarif). */
+  resultatsFactures: number;
+  /** Coût réel rapporté par la plateforme, en milli d'euro, s'il est connu. */
+  coutReelMilli?: number;
+  /** Run interrompu (timeout, abandon) : résultats partiels, coût compté au maximum réservé. */
+  runCoupe?: boolean;
+}
+
 /**
- * Source de données du seed (port). Chaque appel déclare le nombre de résultats facturés.
+ * Source de données du seed (port). Chaque appel déclare sa facturation.
  * Contrat : un appel ne facture jamais plus que `urls.length` / `maxItems` résultats.
  */
 export interface SeedSource {
   recheck(
     urls: readonly string[],
-  ): Promise<{ results: RecheckResult[]; resultatsFactures: number }>;
+    plafond?: PlafondAppel,
+  ): Promise<{ results: RecheckResult[] } & Facturation>;
   discover(
     cellule: Cellule,
     maxItems: number,
-  ): Promise<{ listings: DiscoveredListing[]; resultatsFactures: number }>;
+    plafond?: PlafondAppel,
+  ): Promise<{ listings: DiscoveredListing[] } & Facturation>;
 }
 
 export interface SeedTx {

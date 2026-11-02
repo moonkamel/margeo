@@ -61,3 +61,20 @@ export function adaptAbotapiItem(raw: Raw): Raw {
 export function adaptActorItem(raw: unknown): unknown {
   return isAbotapiItem(raw) ? adaptAbotapiItem(raw) : raw;
 }
+
+/**
+ * Marque brute d'un item, SANS normalisation complète. Sert au comptage de la vérification du
+ * volume : sans `fetchDetails`, abotapi ne renvoie pas l'état de l'annonce et la normalisation
+ * (qui l'exige) rejetterait tout. `brandTitle` est présent dès la recherche (111 / 111 annonces
+ * le 2026-11-04).
+ */
+export function marqueBrute(raw: unknown): string | null {
+  const a = adaptActorItem(raw);
+  if (!isRecord(a)) return null;
+  const brand = a['brand'];
+  const v =
+    a['brand_title'] ??
+    (typeof brand === 'string' ? brand : isRecord(brand) ? brand['title'] : undefined) ??
+    (isRecord(a['brand_dto']) ? a['brand_dto']['title'] : undefined);
+  return typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
+}

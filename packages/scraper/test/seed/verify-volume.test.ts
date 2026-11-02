@@ -83,7 +83,7 @@ describe('runVerifyVolume — exécution en mock', () => {
       repo,
       search: async (url, max) => {
         appels.push(url);
-        return (catalogue.get(url) ?? []).slice(0, max);
+        return { items: (catalogue.get(url) ?? []).slice(0, max) };
       },
       marqueOf: (raw) => (raw as { marque: string | null }).marque,
     });
@@ -162,11 +162,53 @@ describe('runVerifyVolume — exécution en mock', () => {
       maxItems: 200,
       resolver: new BrandResolver(['Sézane'], []),
       repo,
-      search: async (url, max) => (catalogue.get(url) ?? []).slice(0, max),
+      search: async (url, max) => ({ items: (catalogue.get(url) ?? []).slice(0, max) }),
       marqueOf: (raw) => (raw as { marque: string }).marque,
     });
     expect(r.resultats[0]?.coutMilli).toBe(57_000);
     expect(repo.totalSpent()).toBe(57_000);
+  });
+
+  it('plafond de plateforme dérivé de la réservation ; run coupé sous le seuil → INCOMPLET', async () => {
+    const plafonds: number[] = [];
+    const a = cible('Sézane');
+    const b = cible('Maje');
+    const r = await runVerifyVolume({
+      campagne: 'verify-2026-11',
+      cibles: [a, b],
+      coutParResultatMilli: 240,
+      coutParRunMilli: 5000,
+      maxItems: 200,
+      resolver: new BrandResolver(['Sézane', 'Maje'], []),
+      repo,
+      search: async (_url, _max, plafond) => {
+        plafonds.push(plafond.maxTotalChargeUsd);
+        return { items: items('Sézane', 111), runCoupe: true, coutReelMilli: 26_700 };
+      },
+      marqueOf: (raw) => (raw as { marque: string }).marque,
+    });
+    // Réservation 200 × 0,24 c + 5 c = 53 c → 0,53 / 0,92 × 1,5 = 0,864… → 0,87 $.
+    expect(plafonds).toEqual([0.87]);
+    expect(r.resultats[0]?.verdict).toBe('INCOMPLET');
+    expect(r.arret).toMatch(/run coupé pour C\|Sézane après 111 résultats.*à relancer/);
+    // Run coupé : la réservation maximale est gardée, pas le coût réel rapporté.
+    expect(repo.spendLog).toEqual([{ envelope: 'decouverte', milli: 53_000 }]);
+  });
+
+  it('run coupé AU-DESSUS du seuil : verdict OK (le volume est démontré)', async () => {
+    const a = cible('Nike');
+    const r = await runVerifyVolume({
+      campagne: 'verify-2026-11',
+      cibles: [a],
+      coutParResultatMilli: 240,
+      coutParRunMilli: 5000,
+      maxItems: 250,
+      resolver: new BrandResolver(['Nike'], []),
+      repo,
+      search: async () => ({ items: items('Nike', 210), runCoupe: true }),
+      marqueOf: (raw) => (raw as { marque: string }).marque,
+    });
+    expect(r.resultats[0]?.verdict).toBe('OK');
   });
 
   it('échec de l’acteur : coût maximal compté par prudence, arrêt', async () => {
@@ -178,9 +220,7 @@ describe('runVerifyVolume — exécution en mock', () => {
       maxItems: 250,
       resolver: new BrandResolver(['Sézane', 'Maje'], []),
       repo,
-      search: async () => {
-        throw new Error('timeout');
-      },
+      search: () => Promise.reject(new Error('timeout')),
       marqueOf: () => null,
     });
     expect(r.statut).toBe('STOPPED');

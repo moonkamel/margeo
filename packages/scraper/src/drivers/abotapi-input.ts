@@ -9,7 +9,9 @@ import type { ApifyInputBuilders } from './apify.js';
  *   sortBy: "newest_first" }` ;
  * - Re-vérification : `{ mode: "url", urls, maxItems, fetchDetails: true }`.
  *
- * `fetchDetails` est toujours explicite (c'est lui qui expose `catalogId`, la sous-catégorie).
+ * `fetchDetails` est toujours explicite : `true` pour le seed (il expose `catalogId`, la
+ * sous-catégorie), `false` pour le COMPTAGE de la vérification du volume (la recherche donne déjà
+ * `brandTitle` ; les détails coûtent ~1 s par annonce, incompatible avec 200 annonces par run).
  * `maxItems` est toujours présent : c'est le plafond de facturation du run.
  * Schémas STRICTS : un champ non prévu fait échouer la construction, rien n'est envoyé.
  */
@@ -24,7 +26,7 @@ const searchInputSchema = z
     queries: z.array(z.string().min(1)).length(1),
     categoryId: z.string().regex(/^\d+$/),
     maxItems: z.number().int().positive(),
-    fetchDetails: z.literal(true),
+    fetchDetails: z.boolean(),
     sortBy: z.literal('newest_first'),
   })
   .strict();
@@ -49,7 +51,11 @@ const PARAMS_RECHERCHE = new Set(['catalog[]', 'search_text', 'order']);
  * Exige exactement un catalogue et un texte de recherche ; refuse tout autre filtre plutôt que
  * de l'ignorer en silence (un filtre perdu fausserait la cellule).
  */
-export function abotapiSearchInput(searchUrl: string, maxItems: number): AbotapiSearchInput {
+export function abotapiSearchInput(
+  searchUrl: string,
+  maxItems: number,
+  { fetchDetails }: { fetchDetails: boolean } = { fetchDetails: true },
+): AbotapiSearchInput {
   const u = new URL(searchUrl);
   const inconnus = [...new Set(u.searchParams.keys())].filter((k) => !PARAMS_RECHERCHE.has(k));
   if (inconnus.length > 0) {
@@ -72,7 +78,7 @@ export function abotapiSearchInput(searchUrl: string, maxItems: number): Abotapi
     queries: [texte],
     categoryId: catalogues[0],
     maxItems,
-    fetchDetails: true,
+    fetchDetails,
     sortBy: 'newest_first',
   });
 }
@@ -92,12 +98,22 @@ export const ABOTAPI_INPUT_BUILDERS: ApifyInputBuilders = {
   search: (searchUrl, maxItems) => abotapiSearchInput(searchUrl, maxItems),
 };
 
+/** Comptage (vérification du volume) : recherche SANS détails. Re-vérification non prévue. */
+export const ABOTAPI_COMPTAGE_BUILDERS: ApifyInputBuilders = {
+  ...ABOTAPI_INPUT_BUILDERS,
+  search: (searchUrl, maxItems) => abotapiSearchInput(searchUrl, maxItems, { fetchDetails: false }),
+};
+
 /**
  * Builders d'input de l'acteur configuré pour le seed. Un acteur sans mapping validé est refusé :
  * jamais d'input « générique » envoyé à un acteur réel qui l'interpréterait mal.
  */
-export function inputBuildersPourActeur(actorId: string): ApifyInputBuilders {
-  if (ABOTAPI_ACTOR_IDS.includes(actorId.trim())) return ABOTAPI_INPUT_BUILDERS;
+export function inputBuildersPourActeur(
+  actorId: string,
+  usage: 'seed' | 'comptage' = 'seed',
+): ApifyInputBuilders {
+  if (ABOTAPI_ACTOR_IDS.includes(actorId.trim()))
+    return usage === 'comptage' ? ABOTAPI_COMPTAGE_BUILDERS : ABOTAPI_INPUT_BUILDERS;
   throw new ScraperError(
     'invalid_response',
     `Acteur « ${actorId} » sans mapping d'input validé (acteur retenu : abotapi/vinted-fr-scraper)`,

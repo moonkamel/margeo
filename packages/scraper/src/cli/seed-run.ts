@@ -14,7 +14,7 @@ import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { createPrismaClient } from '@margeo/db';
 import { inputBuildersPourActeur } from '../drivers/abotapi-input.js';
-import { ApifyDriver } from '../drivers/apify.js';
+import { ApifyAsyncRunner } from '../drivers/apify-async.js';
 import {
   ApifySeedSource,
   BrandResolver,
@@ -176,12 +176,14 @@ async function main(): Promise<number> {
     } catch (err) {
       return configError(err);
     }
-    const driver = new ApifyDriver({
+    // Runs ASYNCHRONES : fetchDetails prend ~1 s par annonce (pics à 35 s), incompatible avec
+    // l'endpoint synchrone (300 s max). Timeout d'un run : 600 s ; au-delà, run coupé → repli
+    // des lots à 50. Plafonds de plateforme (maxItems, maxTotalChargeUsd) sur chaque run.
+    const runner = new ApifyAsyncRunner({
       actorId: env.apifyActorId,
       token: env.apifyToken,
-      inputBuilders,
-      // Timeout explicite d'un run (lot de 100) : au-delà, repli automatique à 50.
-      timeoutSecs: 120,
+      timeoutSecs: 600,
+      memoryMbytes: 1024,
     });
     const result = await runSeed({
       campagne,
@@ -189,7 +191,7 @@ async function main(): Promise<number> {
       budget,
       plafondCents,
       brandResolver: resolver,
-      source: new ApifySeedSource(driver),
+      source: new ApifySeedSource(runner, inputBuilders),
       repo,
       log,
       tailleLotReverification: tailleLot,

@@ -155,7 +155,12 @@ export class BudgetLedger {
     reservation: Reservation,
     resultatsFactures: number,
   ): { milli: number; anomalie: boolean } {
-    const milli = this.costFor(resultatsFactures);
+    return this.commitMilli(reservation, this.costFor(resultatsFactures));
+  }
+
+  /** Enregistre un coût réel déjà connu (ex. facture d'un run asynchrone), en milli. */
+  commitMilli(reservation: Reservation, milli: number): { milli: number; anomalie: boolean } {
+    if (!Number.isInteger(milli) || milli < 0) throw new RangeError(`Coût invalide : ${milli}`);
     this.spent[reservation.envelope] += milli;
     if (this.totalMilli >= this.capMilli) this.stopMotif = 'budget_cap';
     return { milli, anomalie: milli > reservation.maxMilli };
@@ -194,4 +199,28 @@ export function budgetDepuisPlafond(
     coutParResultatMilli,
     coutParRunMilli,
   };
+}
+
+/**
+ * Taux de calibrage budgétaire (doc 2b, 8.12) : 1 $ = 0,92 €. Conservateur, pas comptable.
+ */
+export const EUR_PAR_USD = 0.92;
+/** Marge appliquée au plafond de coût d'un run côté Apify (décision du 2026-11-04). */
+export const MARGE_PLAFOND_RUN = 1.5;
+/** Plancher du plafond de coût d'un run, en dollars. */
+export const PLANCHER_PLAFOND_RUN_USD = 0.1;
+
+/** Coût facturé par Apify (dollars) → milli d'euro, arrondi au-dessus (jamais sous-estimé). */
+export function usdToMilli(usd: number): number {
+  return Math.ceil(usd * EUR_PAR_USD * 100 * MILLI_PAR_CENTIME);
+}
+
+/**
+ * Plafond de coût d'un run, transmis à la PLATEFORME Apify (`maxTotalChargeUsd`) : coût réservé
+ * × 1,5, converti en dollars, arrondi au centime supérieur, plancher 0,10 $. La plateforme coupe
+ * le run au-delà, même si l'acteur ignore notre input.
+ */
+export function plafondRunUsd(reservationMilli: number): number {
+  const usd = (reservationMilli / (100 * MILLI_PAR_CENTIME) / EUR_PAR_USD) * MARGE_PLAFOND_RUN;
+  return Math.max(PLANCHER_PLAFOND_RUN_USD, Math.ceil(usd * 100 - 1e-9) / 100);
 }

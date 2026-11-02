@@ -11,8 +11,8 @@
 import { parseArgs } from 'node:util';
 import { createPrismaClient } from '@margeo/db';
 import { inputBuildersPourActeur } from '../drivers/abotapi-input.js';
-import { ApifyDriver } from '../drivers/apify.js';
-import { normalizeVintedItem } from '../normalize.js';
+import { ApifyAsyncRunner } from '../drivers/apify-async.js';
+import { marqueBrute } from '../adapters/abotapi.js';
 import {
   BrandResolver,
   campagneDuMois,
@@ -24,6 +24,7 @@ import {
   requireSeedEnv,
   runVerifyVolume,
   SeedConfigError,
+  usdToMilli,
   VERIFY_MAX_ITEMS,
   type EtapeVerif,
 } from '../seed/index.js';
@@ -109,7 +110,7 @@ async function main(): Promise<number> {
   let coutParRunMilli: number;
   try {
     env = requireSeedEnv(process.env);
-    inputBuilders = inputBuildersPourActeur(env.apifyActorId);
+    inputBuilders = inputBuildersPourActeur(env.apifyActorId, 'comptage');
     tarif = intArg('cout-par-1000', tarifArg);
     coutParRunMilli = centsArgToMilli('cout-par-run', runArg);
   } catch (err) {
@@ -118,11 +119,13 @@ async function main(): Promise<number> {
   const prisma = createPrismaClient(env.databaseUrl);
   try {
     const repo = new PrismaSeedRepository(prisma);
-    const driver = new ApifyDriver({
+    // Comptage sans fetchDetails (recherche seule, quelques secondes) ; run asynchrone avec
+    // plafonds de plateforme (maxItems exact, maxTotalChargeUsd dérivé de la réservation).
+    const runner = new ApifyAsyncRunner({
       actorId: env.apifyActorId,
       token: env.apifyToken,
-      inputBuilders,
-      timeoutSecs: 280,
+      timeoutSecs: 300,
+      memoryMbytes: 1024,
     });
     const r = await runVerifyVolume({
       campagne,
@@ -135,11 +138,18 @@ async function main(): Promise<number> {
         await repo.loadBrandAliases(),
       ),
       repo,
-      search: (url, max) => driver.searchRawUrl(url, max),
-      marqueOf: (raw) => {
-        const n = normalizeVintedItem(raw, new Date());
-        return n.ok ? n.listing.marque : null;
+      search: async (url, max, plafond) => {
+        const run = await runner.run(inputBuilders.search(url, max), {
+          maxItems: max,
+          maxTotalChargeUsd: plafond.maxTotalChargeUsd,
+        });
+        return {
+          items: run.items,
+          runCoupe: run.coupe,
+          ...(run.usageTotalUsd === null ? {} : { coutReelMilli: usdToMilli(run.usageTotalUsd) }),
+        };
       },
+      marqueOf: marqueBrute,
     });
     for (const x of r.resultats) {
       console.log(

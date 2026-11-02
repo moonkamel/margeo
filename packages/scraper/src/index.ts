@@ -16,3 +16,4 @@ export * from './cache.js';
 export * from './sanitize.js';
 export * from './adapters/abotapi.js';
 export * from './drivers/abotapi-input.js';
+export * from './drivers/apify-async.js';

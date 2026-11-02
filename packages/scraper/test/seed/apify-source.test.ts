@@ -1,93 +1,116 @@
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { http, HttpResponse } from 'msw';
-import { setupServer } from 'msw/node';
-import { ApifyDriver } from '../../src/index.js';
+import { describe, expect, it } from 'vitest';
+import {
+  ABOTAPI_INPUT_BUILDERS,
+  type ActorRunner,
+  type LimitesRun,
+  type RunActeur,
+} from '../../src/index.js';
 import { ApifySeedSource, subcategoryIdOf } from '../../src/seed/index.js';
-import { cellule } from './fake-source.js';
 import { item } from '../load-fixture.js';
+import { cellule } from './fake-source.js';
 
-const BASE = 'https://api.apify.test';
-const ENDPOINT = `${BASE}/v2/acts/margeo~vinted-test/run-sync-get-dataset-items`;
 const NOW = new Date('2026-11-02T12:00:00Z');
-const server = setupServer();
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
-
-const source = () =>
-  new ApifySeedSource(
-    new ApifyDriver({
-      actorId: 'margeo/vinted-test',
-      token: 't',
-      baseUrl: BASE,
-      sleep: async () => {},
-      now: () => NOW,
-    }),
-    () => NOW,
-  );
-
 const url = (id: string) => `https://www.vinted.fr/items/${id}-x`;
+const PLAFOND = { maxTotalChargeUsd: 0.87 };
+
+/** Runner factice : enregistre input et plafonds, renvoie le run configuré. */
+class FakeRunner implements ActorRunner {
+  appels: { input: unknown; limites: LimitesRun }[] = [];
+  constructor(private readonly reponse: Partial<RunActeur>) {}
+  async run(input: unknown, limites: LimitesRun): Promise<RunActeur> {
+    this.appels.push({ input, limites });
+    return {
+      runId: 'r1',
+      statut: 'SUCCEEDED',
+      coupe: false,
+      items: [],
+      usageTotalUsd: null,
+      ...this.reponse,
+    };
+  }
+}
+const source = (runner: ActorRunner) =>
+  new ApifySeedSource(runner, ABOTAPI_INPUT_BUILDERS, () => NOW);
+
+const LOT = [
+  item('api-active'), // 4817263512
+  item('api-sold'), // 4817263599
+  item('closed-not-sold'), // 4817265555
+  { ...(item('no-price') as object), id: 4817260001 }, // illisible
+  item('deleted'), // sans id : ignoré
+];
+const URLS = ['4817263512', '4817263599', '4817265555', '4817260001', '4817269999'].map(url);
 
 describe('ApifySeedSource.recheck — lot en un seul run', () => {
-  it('classe chaque annonce : active, vendue, clôturée, introuvable, illisible', async () => {
-    let body: unknown;
-    let appels = 0;
-    server.use(
-      http.post(ENDPOINT, async ({ request }) => {
-        appels++;
-        body = await request.json();
-        return HttpResponse.json([
-          item('api-active'), // 4817263512
-          item('api-sold'), // 4817263599
-          item('closed-not-sold'), // 4817265555
-          { ...(item('no-price') as object), id: 4817260001 }, // illisible
-          item('deleted'), // sans id : ignoré
-        ]);
-      }),
-    );
-    const { results, resultatsFactures } = await source().recheck([
-      url('4817263512'),
-      url('4817263599'),
-      url('4817265555'),
-      url('4817260001'),
-      url('4817269999'),
-    ]);
-    expect(appels).toBe(1);
-    expect(body).toMatchObject({ maxItems: 5 });
-    expect(results.map((r) => r.outcome)).toEqual([
+  it('classe chaque annonce ; plafonds de plateforme : maxItems exact + maxTotalChargeUsd', async () => {
+    const runner = new FakeRunner({ items: LOT, usageTotalUsd: 0.06 });
+    const r = await source(runner).recheck(URLS, PLAFOND);
+    expect(runner.appels).toHaveLength(1);
+    expect(runner.appels[0]?.limites).toEqual({ maxItems: 5, maxTotalChargeUsd: 0.87 });
+    expect(runner.appels[0]?.input).toMatchObject({ mode: 'url', maxItems: 5 });
+    expect(r.results.map((x) => x.outcome)).toEqual([
       'active',
       'sold',
       'closed',
       'illisible',
       'not_found',
     ]);
-    expect(resultatsFactures).toBe(5);
+    expect(r.resultatsFactures).toBe(5);
+    // 0,06 $ × 0,92 = 0,0552 € = 5 520 milli, arrondi au-dessus.
+    expect(r.coutReelMilli).toBe(5520);
+    expect(r.runCoupe).toBe(false);
+  });
+
+  it('run coupé : les annonces absentes ne sont PAS « introuvables » (pas de fausse disparition)', async () => {
+    const runner = new FakeRunner({ items: LOT.slice(0, 2), coupe: true, statut: 'TIMED-OUT' });
+    const r = await source(runner).recheck(URLS, PLAFOND);
+    expect(r.runCoupe).toBe(true);
+    expect(r.results.map((x) => x.outcome)).toEqual([
+      'active',
+      'sold',
+      'illisible',
+      'illisible',
+      'illisible',
+    ]);
+    expect(r.results.every((x) => x.outcome !== 'not_found')).toBe(true);
+  });
+
+  it('plafond de coût obligatoire : refus sans appel', async () => {
+    const runner = new FakeRunner({});
+    await expect(source(runner).recheck(URLS)).rejects.toThrow(/Plafond de coût/);
+    expect(runner.appels).toHaveLength(0);
   });
 
   it('lot vide → aucun appel', async () => {
-    expect(await source().recheck([])).toEqual({ results: [], resultatsFactures: 0 });
+    const runner = new FakeRunner({});
+    expect(await source(runner).recheck([], PLAFOND)).toEqual({
+      results: [],
+      resultatsFactures: 0,
+    });
+    expect(runner.appels).toHaveLength(0);
   });
 });
 
 describe('ApifySeedSource.discover', () => {
-  it('recherche sur le catalogue exact, plafonne maxItems, garde les items normalisables', async () => {
-    let body: unknown;
-    server.use(
-      http.post(ENDPOINT, async ({ request }) => {
-        body = await request.json();
-        return HttpResponse.json([item('api-active'), item('flat-active'), item('no-price')]);
-      }),
-    );
-    const { listings, resultatsFactures } = await source().discover(
+  it('recherche sur le catalogue exact, plafonds transmis, items normalisables gardés', async () => {
+    const runner = new FakeRunner({
+      items: [item('api-active'), item('flat-active'), item('no-price')],
+    });
+    const { listings, resultatsFactures } = await source(runner).discover(
       cellule('Sweats et pulls (H)', 'Ralph Lauren', { catalogId: 79 }),
       5,
+      PLAFOND,
     );
-    expect(body).toMatchObject({ maxItems: 5 });
-    const searchUrl = new URL((body as { startUrls: { url: string }[] }).startUrls[0]?.url ?? '');
-    expect(searchUrl.searchParams.getAll('catalog[]')).toEqual(['79']);
-    expect(searchUrl.searchParams.get('search_text')).toBe('Ralph Lauren');
+    expect(runner.appels[0]?.limites).toEqual({ maxItems: 5, maxTotalChargeUsd: 0.87 });
+    expect(runner.appels[0]?.input).toStrictEqual({
+      mode: 'search',
+      queries: ['Ralph Lauren'],
+      categoryId: '79',
+      maxItems: 5,
+      fetchDetails: true,
+      sortBy: 'newest_first',
+    });
     expect(listings).toHaveLength(2);
-    // Sous-catégorie lue dans le payload (catalog_id), null si absente.
     expect(listings.map((l) => l.subcategoryId)).toEqual([257, null]);
     expect(resultatsFactures).toBe(3);
   });
