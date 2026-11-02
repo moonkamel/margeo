@@ -34,7 +34,8 @@ export function computeFraisVinted(
   const mode = bareme.modes[preferences.modeVente];
   const protectionAcheteurCents =
     mode.protectionAcheteurFixeCents + applyRate(prixAchatCents, mode.protectionAcheteurTaux);
-  const commissionVendeurCents = applyRate(prixReventeCents, mode.commissionVendeurTaux);
+  // Commission vendeur forfaitaire par vente (pas de pourcentage) : 0 € en particulier.
+  const commissionVendeurCents = prixReventeCents > 0 ? mode.commissionVendeurFixeCents : 0;
   return {
     protectionAcheteurCents,
     commissionVendeurCents,
@@ -57,16 +58,13 @@ export function computeValorisationTemps(
  * margeNette = prixReventeEstime − prixAchat − fraisVinted − fraisPort
  *            − coutEmballage − cotisationsSociales − valorisationTemps
  *
- * Statut :
- *  - VERT  si margeNette ≥ seuil ET margeHoraire ≥ taux horaire
- *  - ORANGE si margeNette > 0 mais sous l'un des seuils
- *  - ROUGE si margeNette ≤ 0
+ * Statut — calculé UNIQUEMENT sur margeNette :
+ *  - VERT   si margeNette ≥ seuil utilisateur
+ *  - ORANGE si 0 < margeNette < seuil
+ *  - ROUGE  si margeNette ≤ 0
  *
- * margeHoraire = gain par heure de travail AVANT valorisation du temps
- *              = (margeNette + valorisationTemps) / heures.
- * Avec cette définition (option (a) validée), la condition horaire équivaut à margeNette ≥ 0
- * dès que le temps est > 0 ; elle est conservée explicitement pour lisibilité et pour le cas
- * temps = 0 (margeHoraire = null, condition considérée comme satisfaite).
+ * Le temps de travail est déjà pris en compte par la soustraction de valorisationTemps :
+ * il reste une ligne visible du détail (traçabilité) mais n'est jamais un critère séparé.
  */
 export function computeMargin(input: MarginInput): MarginResult {
   const { prixAchatCents, prixReventeEstimeCents, classeColis, preferences } = input;
@@ -87,19 +85,9 @@ export function computeMargin(input: MarginInput): MarginResult {
     cotisationsCents -
     valorisationTempsCents;
 
-  const margeHoraireCents =
-    tempsEstimeMinutes > 0
-      ? roundCents(((margeNetteCents + valorisationTempsCents) * 60) / tempsEstimeMinutes)
-      : null;
-
-  const statut = computeStatut(
-    margeNetteCents,
-    margeHoraireCents,
-    seuilMargeCents,
-    tauxHoraireCents,
-  );
+  const statut = computeStatut(margeNetteCents, seuilMargeCents);
   const { vitesse, confidence } = computeVitesse(input.medianJoursVente);
-  const score = computeScore(prixReventeEstimeCents, prixAchatCents, vitesse);
+  const score = computeScore(margeNetteCents, prixReventeEstimeCents, vitesse);
 
   const mode = bareme.modes[preferences.modeVente];
   // Un coût s'affiche en négatif ; on évite le « -0 » pour un coût nul.
@@ -150,7 +138,6 @@ export function computeMargin(input: MarginInput): MarginResult {
 
   return {
     margeNetteCents,
-    margeHoraireCents,
     statut,
     score,
     confidence,
@@ -160,14 +147,8 @@ export function computeMargin(input: MarginInput): MarginResult {
   };
 }
 
-export function computeStatut(
-  margeNetteCents: Cents,
-  margeHoraireCents: Cents | null,
-  seuilMargeCents: Cents,
-  tauxHoraireCents: Cents,
-): Statut {
+export function computeStatut(margeNetteCents: Cents, seuilMargeCents: Cents): Statut {
   if (margeNetteCents <= 0) return 'ROUGE';
-  const horaireOk = margeHoraireCents === null || margeHoraireCents >= tauxHoraireCents;
-  if (margeNetteCents >= seuilMargeCents && horaireOk) return 'VERT';
+  if (margeNetteCents >= seuilMargeCents) return 'VERT';
   return 'ORANGE';
 }

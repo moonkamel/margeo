@@ -154,10 +154,8 @@ export const marginLineSchema = z.object({
 });
 export type MarginLine = z.infer<typeof marginLineSchema>;
 
-export const marginResultSchema = z.object({
+export const marginResultSchema = z.strictObject({
   margeNetteCents: signedCentsSchema,
-  /** Gain par heure de travail avant valorisation du temps ; null si temps = 0. */
-  margeHoraireCents: signedCentsSchema.nullable(),
   statut: statutSchema,
   score: z.number().int().min(0).max(100),
   confidence: confidenceSchema,

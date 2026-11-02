@@ -18,29 +18,53 @@ describe('computeVitesse', () => {
   });
 });
 
-describe('computeScore', () => {
-  it('100 × (0,7 × ratio + 0,3 × vitesse)', () => {
-    expect(computeScore(3000, 1000, 0.5)).toBe(62);
-    expect(computeScore(3000, 1000, 1)).toBe(77);
-    expect(computeScore(3000, 0, 1)).toBe(100);
+describe('computeScore — ratioBrut = margeNette / max(revente, 1 €)', () => {
+  it('100 × (0,7 × clamp(ratioBrut) + 0,3 × vitesse)', () => {
+    // 711 / 3000 = 0,237 → 0,7 × 0,237 = 16,6 points
+    expect(computeScore(711, 3000, 0.5)).toBe(32);
+    expect(computeScore(711, 3000, 1)).toBe(47);
+    expect(computeScore(3000, 3000, 1)).toBe(100);
   });
 
-  it('ratio borné à 0 quand l’achat dépasse la revente', () => {
-    expect(computeScore(1000, 5000, 0)).toBe(0);
-    expect(computeScore(1000, 5000, 1)).toBe(30);
+  it('marge nette négative → part marge nulle', () => {
+    expect(computeScore(-339, 3000, 0)).toBe(0);
+    expect(computeScore(-339, 3000, 1)).toBe(30);
   });
 
-  it('revente nulle → pas de division par zéro', () => {
-    expect(computeScore(0, 100, 0.5)).toBe(15);
+  it('plancher du dénominateur à 1 € (revente nulle ou quasi nulle)', () => {
+    expect(computeScore(0, 0, 0.5)).toBe(15);
+    expect(computeScore(50, 0, 0.5)).toBe(50);
+    expect(computeScore(50, 10, 0)).toBe(35);
+  });
+
+  it('annonce très bradée mais plombée par les frais → mauvais score', () => {
+    // Revente 10 €, achat 1 € : décote brute de 90 %, mais frais + temps rendent la marge négative.
+    const r = computeMargin({
+      prixAchatCents: 100,
+      prixReventeEstimeCents: 1000,
+      classeColis: 'PETIT',
+      preferences: {
+        tauxHoraireCents: 1200,
+        seuilMargeCents: 500,
+        tempsEstimeMinutes: 20,
+        coutEmballageCents: 50,
+        modeVente: 'PARTICULIER',
+      },
+      medianJoursVente: null,
+    });
+    expect(r.margeNetteCents).toBe(-98);
+    expect(r.score).toBe(15); // l'ancienne formule (revente − achat) / revente aurait donné 78
+    expect(r.statut).toBe('ROUGE');
   });
 
   it('toujours un entier entre 0 et 100', () => {
-    for (const [r, a, v] of [
+    for (const [m, r, v] of [
       [1, 0, 2],
       [999, 1, -1],
       [12345, 678, 0.33],
+      [-5000, 100, 0.9],
     ] as const) {
-      const s = computeScore(r, a, v);
+      const s = computeScore(m, r, v);
       expect(Number.isInteger(s)).toBe(true);
       expect(s).toBeGreaterThanOrEqual(0);
       expect(s).toBeLessThanOrEqual(100);
@@ -66,12 +90,12 @@ describe('confidence dans la payload de marge', () => {
     const r = computeMargin({ ...input, medianJoursVente: null });
     expect(r.confidence).toBe('low');
     expect(r.vitesse).toBe(0.5);
-    expect(r.score).toBe(62);
+    expect(r.score).toBe(32);
   });
 
   it('high si délai de vente connu', () => {
     const r = computeMargin({ ...input, medianJoursVente: 3 });
     expect(r.confidence).toBe('high');
-    expect(r.score).toBe(77);
+    expect(r.score).toBe(47);
   });
 });

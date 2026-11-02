@@ -13,11 +13,14 @@ import type { ClasseColis, ModeVente } from '../schemas.js';
  *
  * Sources consultées le 2026-11-02 :
  *  - Protection acheteurs : 0,70 € + 5 % du prix (centre d'aide Vinted, y compris Vinted Pro).
- *  - Commission vendeur PARTICULIER : 0 %.
- *  - Commission vendeur PRO : SOURCES CONTRADICTOIRES (0 % vs 5 %), aucune page officielle
- *    trouvée qui tranche. Valeur conservatrice NON VÉRIFIÉE → `verifie: false`.
+ *  - Commission vendeur PARTICULIER : 0 € (frais supportés par l'acheteur).
+ *  - Commission vendeur PRO : forfait de 5 € par vente (grille Vinted de septembre 2025),
+ *    retenu par décision produit malgré des sources contradictoires (0 % / 5 %).
+ *  - Les deux modes restent `verifie: false` : grille Vinted Pro à revérifier avant
+ *    l'ouverture commerciale. Tant que PRO n'est pas vérifié, il n'est pas exposé dans l'UI
+ *    (cf. `isModeVenteDisponible`), même si le calcul est implémenté.
  *  - Port : estimations par format de colis, À CONFIRMER sur la grille transporteurs
- *    Vinted en Phase 2 → `verifie: false`.
+ *    Vinted → `portVerifie: false`.
  */
 
 export interface BaremeMode {
@@ -25,8 +28,8 @@ export interface BaremeMode {
   protectionAcheteurFixeCents: number;
   /** Part proportionnelle de la protection acheteurs, appliquée au prix d'achat. */
   protectionAcheteurTaux: number;
-  /** Commission prélevée au vendeur sur le prix de revente. */
-  commissionVendeurTaux: number;
+  /** Commission forfaitaire prélevée au vendeur par vente, en centimes (pas de pourcentage). */
+  commissionVendeurFixeCents: number;
   /** `false` tant qu'une valeur du mode n'a pas été confirmée par une source officielle. */
   verifie: boolean;
 }
@@ -45,14 +48,13 @@ export const BAREME_VINTED: BaremeVinted = {
     PARTICULIER: {
       protectionAcheteurFixeCents: 70,
       protectionAcheteurTaux: 0.05,
-      commissionVendeurTaux: 0,
-      verifie: true,
+      commissionVendeurFixeCents: 0,
+      verifie: false,
     },
     PRO: {
       protectionAcheteurFixeCents: 70,
       protectionAcheteurTaux: 0.05,
-      // Hypothèse prudente (5 %) en attendant confirmation officielle.
-      commissionVendeurTaux: 0.05,
+      commissionVendeurFixeCents: 500,
       verifie: false,
     },
   },
@@ -83,4 +85,16 @@ const CLASSE_COLIS_PAR_CATEGORIE: Readonly<Record<string, ClasseColis>> = {
 
 export function classeColisPourCategorie(categorie: string): ClasseColis {
   return CLASSE_COLIS_PAR_CATEGORIE[categorie.trim().toLowerCase()] ?? 'PETIT';
+}
+
+/**
+ * Un mode de vente n'est proposé dans l'UI que si son barème est vérifié.
+ * Exception : PARTICULIER reste toujours disponible (mode par défaut, sans commission vendeur),
+ * sinon aucun utilisateur ne pourrait utiliser le produit.
+ */
+export function isModeVenteDisponible(
+  mode: ModeVente,
+  bareme: BaremeVinted = BAREME_VINTED,
+): boolean {
+  return mode === 'PARTICULIER' || bareme.modes[mode].verifie;
 }

@@ -5,6 +5,7 @@ import {
   computeMargin,
   computeStatut,
   computeValorisationTemps,
+  isModeVenteDisponible,
   marginResultSchema,
   type MarginInput,
   type Preferences,
@@ -42,7 +43,6 @@ describe('computeMargin — formule ligne par ligne', () => {
     expect(ligne(r, 'cotisations')).toBe(-369);
     expect(ligne(r, 'temps')).toBe(-400);
     expect(r.margeNetteCents).toBe(711);
-    expect(r.margeHoraireCents).toBe(3333);
     expect(r.statut).toBe('VERT');
   });
 
@@ -116,10 +116,10 @@ describe('computeMargin — recalcul client sur changement de préférences', ()
     expect(r.margeNetteCents).toBe(711 - 150);
   });
 
-  it('un temps nul donne une valorisation nulle et une marge horaire null', () => {
+  it('un temps nul donne une valorisation nulle', () => {
     const r = computeMargin({ ...base, preferences: { ...prefs, tempsEstimeMinutes: 0 } });
     expect(ligne(r, 'temps')).toBe(0);
-    expect(r.margeHoraireCents).toBeNull();
+    expect(r.margeNetteCents).toBe(711 + 400);
     expect(r.statut).toBe('VERT');
   });
 });
@@ -131,11 +131,27 @@ describe('computeMargin — modes de vente', () => {
     ).toBe(0);
   });
 
-  it('PRO : commission vendeur appliquée au prix de revente', () => {
+  it('PRO : commission vendeur forfaitaire de 5 € par vente, indépendante du prix', () => {
+    for (const revente of [1000, 3000, 20_000]) {
+      const pro = computeFraisVinted(1000, revente, { modeVente: 'PRO' });
+      expect(pro.commissionVendeurCents).toBe(500);
+    }
     const r = computeMargin({ ...base, preferences: { ...prefs, modeVente: 'PRO' } });
-    const tauxPro = BAREME_VINTED.modes.PRO.commissionVendeurTaux;
-    expect(ligne(r, 'frais_vinted')).toBe(-(120 + Math.round(3000 * tauxPro)));
+    expect(ligne(r, 'frais_vinted')).toBe(-(120 + 500));
+    expect(r.margeNetteCents).toBe(711 - 500);
     expect(r.lignes.find((l) => l.cle === 'frais_vinted')?.detail).toContain('à confirmer');
+  });
+
+  it('les deux modes sont marqués non vérifiés ; PRO n’est pas exposé dans l’UI', () => {
+    expect(BAREME_VINTED.modes.PARTICULIER.verifie).toBe(false);
+    expect(BAREME_VINTED.modes.PRO.verifie).toBe(false);
+    expect(isModeVenteDisponible('PARTICULIER')).toBe(true);
+    expect(isModeVenteDisponible('PRO')).toBe(false);
+    const verifie = {
+      ...BAREME_VINTED,
+      modes: { ...BAREME_VINTED.modes, PRO: { ...BAREME_VINTED.modes.PRO, verifie: true } },
+    };
+    expect(isModeVenteDisponible('PRO', verifie)).toBe(true);
   });
 
   it('le port dépend du format de colis', () => {
@@ -157,14 +173,31 @@ describe('statut', () => {
   });
 
   it('marge nulle → ROUGE ; marge = seuil → VERT ; juste sous le seuil → ORANGE', () => {
-    expect(computeStatut(0, 1200, 500, 1200)).toBe('ROUGE');
-    expect(computeStatut(-1, 1200, 500, 1200)).toBe('ROUGE');
-    expect(computeStatut(500, 1200, 500, 1200)).toBe('VERT');
-    expect(computeStatut(499, 5000, 500, 1200)).toBe('ORANGE');
+    expect(computeStatut(0, 500)).toBe('ROUGE');
+    expect(computeStatut(-1, 500)).toBe('ROUGE');
+    expect(computeStatut(500, 500)).toBe('VERT');
+    expect(computeStatut(499, 500)).toBe('ORANGE');
+    expect(computeStatut(1, 500)).toBe('ORANGE');
   });
 
-  it('marge au-dessus du seuil mais marge horaire insuffisante → ORANGE', () => {
-    expect(computeStatut(800, 1199, 500, 1200)).toBe('ORANGE');
+  it('le statut ne dépend que de la marge nette et du seuil (aucun gate horaire)', () => {
+    // Taux horaire très élevé : seul son effet sur margeNette (ligne temps) compte.
+    const r = computeMargin({
+      ...base,
+      prixReventeEstimeCents: 100_000,
+      preferences: { ...prefs, tauxHoraireCents: 50_000, tempsEstimeMinutes: 60 },
+    });
+    expect(r.margeNetteCents).toBeGreaterThanOrEqual(prefs.seuilMargeCents);
+    expect(r.statut).toBe('VERT');
+  });
+
+  it('aucune variable margeHoraire dans le retour', () => {
+    const r = computeMargin(base);
+    expect(Object.keys(r).some((k) => /horaire/i.test(k))).toBe(false);
+    expect(r).not.toHaveProperty('margeHoraireCents');
+    expect(r).not.toHaveProperty('margeHoraire');
+    // Le schéma strict refuse toute réintroduction côté payload.
+    expect(marginResultSchema.safeParse({ ...r, margeHoraireCents: 0 }).success).toBe(false);
   });
 });
 

@@ -29,21 +29,26 @@ export function computeVitesse(medianJoursVente: number | null): {
   return { vitesse, confidence: 'high' };
 }
 
+/** Plancher du dénominateur (1 €) : évite qu'un article à quelques centimes fasse exploser le ratio. */
+export const SCORE_DENOMINATEUR_MIN_CENTS = 100;
+
 /**
  * Score « bonne affaire » 0–100.
- * score = 100 × (0,7 × clamp((revente − achat) / revente, 0, 1) + 0,3 × vitesse)
- * Le ratio mesure la décote brute par rapport au marché (avant frais) : il est
- * volontairement indépendant des préférences pour rester comparable entre utilisateurs.
+ *
+ *   ratioBrut = margeNette / max(prixReventeEstime, 1 €)
+ *   score     = 100 × (0,7 × clamp(ratioBrut, 0, 1) + 0,3 × vitesse)
+ *
+ * Le ratio part de la marge NETTE (après frais, port, emballage, cotisations et temps) :
+ * une annonce très bradée mais plombée par les frais obtient un mauvais score, pas un bon.
  */
 export function computeScore(
+  margeNetteCents: Cents,
   prixReventeEstimeCents: Cents,
-  prixAchatCents: Cents,
   vitesse: number,
 ): number {
-  const ratio =
-    prixReventeEstimeCents > 0
-      ? clamp((prixReventeEstimeCents - prixAchatCents) / prixReventeEstimeCents, 0, 1)
-      : 0;
-  const raw = 100 * (SCORE.poidsMarge * ratio + SCORE.poidsVitesse * clamp(vitesse, 0, 1));
+  const ratioBrut =
+    margeNetteCents / Math.max(prixReventeEstimeCents, SCORE_DENOMINATEUR_MIN_CENTS);
+  const raw =
+    100 * (SCORE.poidsMarge * clamp(ratioBrut, 0, 1) + SCORE.poidsVitesse * clamp(vitesse, 0, 1));
   return clamp(Math.round(raw), 0, 100);
 }
