@@ -1,110 +1,155 @@
 {
-  "_note": "Proposition Phase 2b. Aucune cellule n'est crawlable tant que valide=false (refus du CLI seed:run). Volume >= 200 annonces actives NON vérifié.",
+  "_note": "Phase 2b. Aucune cellule n'est crawlable tant que valide=false. catalogId = source de vérité (le libellé est cosmétique) ; null = identifiant non relevé, la cellule ne peut pas être vérifiée ni crawlée. cibleActives doit correspondre au tier (priority 70, secondary 30, tertiary 20).",
   "cellules": [
     {
       "categorie": "Baskets",
+      "catalogId": null,
       "marque": "Nike",
       "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
     },
     {
       "categorie": "Baskets",
+      "catalogId": null,
       "marque": "Adidas",
       "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
     },
     {
       "categorie": "Baskets",
+      "catalogId": null,
       "marque": "New Balance",
       "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
     },
     {
       "categorie": "Baskets",
+      "catalogId": null,
       "marque": "Asics",
       "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
     },
     {
       "categorie": "Baskets",
+      "catalogId": null,
       "marque": "Veja",
       "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume. Remplacement prévu si < 200 actives : Puma ou Converse."
     },
     {
-      "categorie": "Pulls",
+      "categorie": "Sweats et sweats à capuche (F)",
+      "catalogId": 13,
       "marque": "Sézane",
       "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
       "valide": false,
-      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId."
     },
     {
-      "categorie": "Pulls",
+      "categorie": "Sweats et pulls (H)",
+      "catalogId": 79,
       "marque": "AMI Paris",
       "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
       "valide": false,
-      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+      "justification": "Catalogue 79, relevé le 2026-11-04 sur vinted.fr (Hommes > Vêtements > Sweats et pulls, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Remplacement prévu si < 200 actives : Lacoste ou Tommy Hilfiger."
     },
     {
-      "categorie": "Pulls",
+      "categorie": "Sweats et sweats à capuche (F)",
+      "catalogId": 13,
       "marque": "Sandro",
       "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
       "valide": false,
-      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Sandro a aussi une ligne Homme : si sous-performant à J+14, ajouter Sandro|79 en cellule #16 plutôt que de basculer."
     },
     {
-      "categorie": "Pulls",
+      "categorie": "Sweats et sweats à capuche (F)",
+      "catalogId": 13,
       "marque": "Maje",
       "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
       "valide": false,
-      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId."
     },
     {
-      "categorie": "Pulls",
+      "categorie": "Sweats et pulls (H)",
+      "catalogId": 79,
       "marque": "Ralph Lauren",
       "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
       "valide": false,
-      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+      "justification": "Catalogue 79, relevé le 2026-11-04 sur vinted.fr (Hommes > Vêtements > Sweats et pulls, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Version large pour le pilote ; « Polo Ralph Lauren » et « Lauren Ralph Lauren » ont des gammes de prix distinctes : à scinder à J+14 si la médiane est trop dispersée."
     },
     {
       "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
       "marque": "Apple",
       "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
       "valide": false,
-      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
     },
     {
       "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
       "marque": "Sony",
       "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
       "valide": false,
-      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
     },
     {
       "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
       "marque": "Bose",
       "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
       "valide": false,
-      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
     },
     {
       "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
       "marque": "JBL",
       "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
       "valide": false,
-      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
     },
     {
       "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
       "marque": "Samsung",
       "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
       "valide": false,
-      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
     }
   ]
 }
