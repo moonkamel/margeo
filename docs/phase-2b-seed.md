@@ -486,7 +486,7 @@ le slug `jumpers-and-sweaters` est commun aux deux et ne suffit pas) :
   Une annonce sans sous-catégorie, ou dont la sous-catégorie est déjà rattachée à un autre parent,
   est écartée et signalée (« Élargissement de recherche »).
 - **Baskets** : **1242** = Hommes › Chaussures › Baskets (slug `trainers`), relevé le 2026-11-04.
-  Côté Femmes : identifiant à relever dans le navigateur. Répartition des 5 marques à trancher.
+  Côté Femmes : **2632** (à confirmer, voir 8.17). Répartition des 5 marques : 8.17.
 - **Casques** : **3566** = Électronique › Audio, casques et hi-fi (parent large : enceintes,
   radios…). L'identifiant de la sous-catégorie « Casques audio et écouteurs » reste à relever.
 - **Acteur** : candidat principal `kazkn` (Vinted Smart Scraper), secours `abotapi/vinted-fr-scraper`.
@@ -724,3 +724,28 @@ taille absente sur les 5. **J+2** : les 3 cellules, sans filtre.
   dépense, un taux de vente trop bas fait revoir le tiering ou les cellules.
 
 Outil de suivi : `scripts/suivi-quotidien/` (lecture seule, hors du code du seed).
+
+### 8.17 Identifiants complémentaires et répartition des baskets (2026-11-04, pour décembre)
+
+| Catalogue                  | Identifiant | Source                                         | Statut                                                                                |
+| -------------------------- | ----------- | ---------------------------------------------- | ------------------------------------------------------------------------------------- |
+| Chaussures (H), parent     | 1231        | capture (fil d'Ariane « Hommes / Chaussures ») | vérifié — parent de 1242 ; ce n'est **pas** « Chaussures Femmes »                     |
+| Baskets (F)                | **2632**    | lien de recherche fourni                       | **à confirmer en décembre** : `categoryPath` = « Femmes Baskets »                     |
+| Casques audio et écouteurs | **3678**    | lien de recherche fourni                       | **à confirmer en décembre** : `categoryPath` attendu sous « Audio, casques et hi-fi » |
+
+Ce sont des hypothèses, pas des faits : la vérification du volume de décembre lit `categoryPath` sur
+les annonces renvoyées ; au moindre écart, on corrige avant tout seed. Pour les casques, surveiller
+aussi la pureté de la recherche (accessoires ou enceintes mal classés sous « JBL », « Samsung »).
+
+**Répartition des baskets pour décembre** (décision du 2026-11-04) — 5 cellules, pas 10 :
+
+| Marque      | Catalogue   | Raison                                           |
+| ----------- | ----------- | ------------------------------------------------ |
+| Nike        | 1242 Hommes | en place, marché le plus liquide                 |
+| Adidas      | 1242 Hommes | en place                                         |
+| Asics       | 1242 Hommes | Gel-Kayano, Gel-Nimbus très revendus côté hommes |
+| New Balance | 2632 Femmes | très portée côté femmes en France (574, 550)     |
+| Veja        | 2632 Femmes | marque à majorité féminine (Campos, V-10)        |
+
+`cellules.json` sera mis à jour **après le J+2** (identifiants, libellés, justification de 1231
+corrigée), toutes les nouvelles cellules restant à `valide: false` jusqu'à la vérification.
