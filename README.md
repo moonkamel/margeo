@@ -80,12 +80,20 @@ Le seed tourne **uniquement depuis GitHub Actions** (`.github/workflows/seed.yml
 jamais depuis une session de dev. Plan, budget et cellules : `docs/phase-2b-seed.md`.
 
 ```bash
-pnpm seed:run --budget-max 4800 --cout-par-1000 <centimes-EUR> [--cellule "Baskets|Nike"]
+pnpm seed:run                                   # dry-run par défaut : aucun appel, aucune dépense
+pnpm seed:verify-volume [--etape pilotes|reste] # dry-run par défaut
+pnpm seed:run --execute --budget-max 10000      # GitHub Actions uniquement
 ```
 
-- Arrêt dur budgétaire codé : aucun appel ne peut faire dépasser `--budget-max` (code de sortie 3).
-- Le CLI refuse toute cellule `valide: false` dans `packages/scraper/seed/cellules.json`.
-- Variables requises (échec immédiat sinon) : `APIFY_TOKEN`, `APIFY_ACTOR_ID`, `DATABASE_URL`.
+- `--budget-max` est le **plafond** mensuel : arrêt dur à 80 % (68 € suivi + 12 € découverte pour
+  100 €), code de sortie 3. Vérification du volume : campagne séparée, arrêt dur 11 €.
+- `--execute` refuse toute cellule non validée, sans `catalogId`, ou dont la marque a un alias
+  non validé (`packages/scraper/seed/cellules.json`, table `BrandAlias`).
+- Variables requises en `--execute` (échec immédiat sinon) : `APIFY_TOKEN`, `APIFY_ACTOR_ID`,
+  `DATABASE_URL`, `SEED_COUT_PAR_1000_CENTS`.
+- **Données personnelles** : le seed ne stocke aucune donnée personnelle vendeur. Les payloads
+  bruts sont filtrés par `sanitizeListingPayload` (allowlist, `packages/scraper/src/sanitize.ts`)
+  avant insertion en base. Toute évolution du schéma de filtrage doit être validée.
 - Rollbacks de migration : `infra/rollbacks/*.down.sql` (à exécuter avec `psql --single-transaction`).
 
 ## TODO avant ouverture commerciale

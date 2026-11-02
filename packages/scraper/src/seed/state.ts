@@ -1,5 +1,6 @@
 import type { NormalizedListing } from '@margeo/shared';
 import { isDisappeared, type ObservationPoint } from '../detection.js';
+import { sanitizeListingPayload } from '../sanitize.js';
 import type {
   Cellule,
   NewTracked,
@@ -51,7 +52,8 @@ function snapshot(
     prixCents: listing.prixCents,
     favoris: listing.favoris,
     vues: listing.vues,
-    payload,
+    // Minimisation RGPD : seule une allowlist de champs est stockée (aucune donnée vendeur).
+    payload: sanitizeListingPayload(payload),
     observedAt: now,
   };
 }

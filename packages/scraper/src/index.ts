@@ -13,3 +13,4 @@ export {
 } from './drivers/apify.js';
 export { CustomDriver } from './drivers/custom.js';
 export * from './cache.js';
+export * from './sanitize.js';

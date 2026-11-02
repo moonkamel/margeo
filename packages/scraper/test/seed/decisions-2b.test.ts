@@ -209,6 +209,18 @@ describe('runSeed — rattachement par catalogue + marque (jamais le libellé)',
     expect(await repo.countActive({ ...SEZANE, catalogId: 79 })).toBe(0);
   });
 
+  it('observations stockées : payload minimisé (aucune donnée vendeur ni description)', async () => {
+    source.catalogue.set(`${SEZANE.categorie}|Sézane`, [pull('a')]);
+    const brut = { itemId: 'a', title: 'Pull', sellerUsername: 'pseudo', description: '06…' };
+    const discover = source.discover.bind(source);
+    source.discover = async (c, n) => {
+      const r = await discover(c, n);
+      return { ...r, listings: r.listings.map((l) => ({ ...l, payload: brut })) };
+    };
+    await run();
+    expect(repo.state.observations.map((o) => o.payload)).toEqual([{ itemId: 'a', title: 'Pull' }]);
+  });
+
   it('sous-catégorie absente du payload → annonce écartée et comptée', async () => {
     source.catalogue.set(`${SEZANE.categorie}|Sézane`, [pull('a'), pull('x')]);
     source.sousCategorie.set('x', null);
