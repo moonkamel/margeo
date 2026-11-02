@@ -535,6 +535,10 @@ après le comparatif (section 1) et validé.
 
 ### 8.11 Décisions du 2026-11-04 (fin de journée)
 
+**Tests B et C de studio-amba (plan Starter actif)** : refusés par Apify avant tout run (HTTP 400
+`max-total-charge-usd-below-minimum`) : cet acteur impose un plafond de coût par run d'au moins
+5 $. Rien n'a été facturé ; en attente d'arbitrage.
+
 **Acteur primaire : `abotapi/vinted-fr-scraper`** (`fetchDetails: true`). `catalogId` = sous-catégorie
 réelle, marque normalisée, adaptateur codé. `studio-amba` reste en réserve : il exige un plan
 payant ; il sera testé au passage au plan Starter (juste avant J+1 du seed), et on bascule s'il
@@ -548,8 +552,13 @@ coûte ses frais. `SEED_COUT_PAR_RUN_CENTS` est obligatoire en `--execute`.
   50 + 15 découvertes) : 1,35 € par jour de frais fixes. **Au rythme maximal, l'arrêt dur de 80 €
   tombe vers le jour 26 (2,60 € / 1 000) ou 22 (3,57 € / 1 000).** Le rythme maximal suppose une
   découverte pleine chaque jour, ce qui n'arrive que pendant le remplissage des parcs.
-- Levier sans toucher au budget : des lots de re-vérification de 100 au lieu de 50 (6 runs de
-  suivi au lieu de 12, environ 9 € par mois de frais en moins). À décider.
+- **Lots de re-vérification à 100 (décidé)** : 6 runs de suivi au lieu de 12, 21 runs par jour au
+  plus, 1,05 € de frais fixes par jour ; au rythme maximal, arrêt dur vers le jour 29 (2,60 € / 1 000)
+  ou 24 (3,57 € / 1 000). Garde-fous : timeout de run explicite à 120 s ; un lot en timeout fait
+  passer les lots à 50 pour le reste du run ET le run suivant (`SeedRun.details.recheckTimeout`),
+  puis retour à 100. Un lot en échec ne modifie aucune annonce (toutes reprises au run suivant) ;
+  une annonce illisible dans un lot n'empêche pas les 99 autres d'être persistées. Si un timeout
+  apparaît au premier run réel, on revient à 50 (`--lot-reverification 50`).
 
 **Backfill** : `pnpm seed:backfill-verify --amount-cents <c> --note "…"` (dry-run par défaut,
 `--execute` avec `DATABASE_URL`) saisit une dépense passée hors CLI dans `verify-YYYY-MM`. À
