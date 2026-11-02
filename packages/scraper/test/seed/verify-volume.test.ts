@@ -6,6 +6,7 @@ import {
   readCellules,
   runVerifyVolume,
   VERIFY_ARRET_DUR_CENTS,
+  VERIFY_MAX_ITEMS,
   type VerifCible,
 } from '../../src/seed/index.js';
 import { MemoryRepo } from './memory-repo.js';
@@ -34,19 +35,22 @@ describe('ciblesVerification', () => {
   });
 
   it('dry-run : URL, coût max par tarif, alerte si l’arrêt dur serait dépassé', () => {
-    const texte = formatVerifPlan(
-      ciblesVerification(configs, 'reste'),
-      'reste',
-      'verify-2026-11',
-      250,
-      [357],
-    );
+    const reste = ciblesVerification(configs, 'reste');
+    const texte = formatVerifPlan(reste, 'reste', 'verify-2026-11', 200, [357]);
     expect(texte).toMatch(/DRY-RUN/);
-    expect(texte).toMatch(/plafond 12,00 €, arrêt dur 10,00 €/);
-    // 12 × 250 × 0,357 c = 10,71 € > 10 €.
-    expect(texte).toMatch(/10,71 € si toutes l'étaient ⚠️ dépasse l'arrêt dur de 10,00 €/);
+    expect(texte).toMatch(/plafond 12,00 €, arrêt dur 11,00 €/);
+    // 12 × 200 × 0,357 c = 8,57 € : sous l'arrêt dur (15 cellules : 10,71 € < 11 €).
+    expect(texte).toMatch(/8,57 € si toutes l'étaient$/m);
+    // 12 × 200 × 0,5 c = 12,00 € > 11 € → alerte.
+    expect(formatVerifPlan(reste, 'reste', 'verify-2026-11', 200, [500])).toMatch(
+      /12,00 € si toutes l'étaient ⚠️ dépasse l'arrêt dur de 11,00 €/,
+    );
     expect(texte.trim().endsWith('dry-run, aucune dépense')).toBe(true);
   });
+});
+
+it('valeurs par défaut : 200 résultats par cellule, arrêt dur 11 €', () => {
+  expect([VERIFY_MAX_ITEMS, VERIFY_ARRET_DUR_CENTS]).toEqual([200, 1100]);
 });
 
 describe('runVerifyVolume — exécution en mock', () => {
@@ -131,17 +135,17 @@ describe('runVerifyVolume — exécution en mock', () => {
     expect(appels).toHaveLength(1);
   });
 
-  it('arrêt dur à 10,00 € : atteint pile, jamais dépassé, même sur un run suivant', async () => {
-    // 1 c par résultat × 250 = 2,50 € par cellule : 4 mesures = 10,00 €, la 5e est refusée.
+  it('arrêt dur à 11,00 € : atteint pile, jamais dépassé, même sur un run suivant', async () => {
+    // 1,1 c par résultat × 250 = 2,75 € par cellule : 4 mesures = 11,00 €, la 5e est refusée.
     const cibles = Array.from({ length: 6 }, (_, i) => cible(`M${i}`, 100 + i));
     for (const c of cibles) catalogue.set(c.url as string, items(c.marque, 250));
-    const r = await run(cibles, 1000);
+    const r = await run(cibles, 1100);
     expect(r.statut).toBe('BUDGET_STOPPED');
     expect(r.resultats).toHaveLength(4);
     expect(r.depenseCampagneMilli).toBe(VERIFY_ARRET_DUR_CENTS * 1000);
-    expect(r.arret).toMatch(/ARRÊT DUR : budget de vérification de 10,00 € atteint avant C\|M4/);
+    expect(r.arret).toMatch(/ARRÊT DUR : budget de vérification de 11,00 € atteint avant C\|M4/);
     appels.length = 0;
-    const apres = await run(cibles.slice(4), 1000);
+    const apres = await run(cibles.slice(4), 1100);
     expect(apres.statut).toBe('BUDGET_STOPPED');
     expect(appels).toEqual([]);
     expect(repo.totalSpent()).toBe(VERIFY_ARRET_DUR_CENTS * 1000);

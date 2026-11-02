@@ -106,6 +106,12 @@ export class MemoryRepo implements SeedRepository {
     ).length;
   }
 
+  async countNonRattachees() {
+    return [...this.state.tracked.values()].filter(
+      (t) => t.statut === 'ACTIVE' && t.catalogIdRecherche === null,
+    ).length;
+  }
+
   async subcategoryParents(ids: readonly number[]) {
     const m = new Map<number, number>();
     for (const id of ids) {

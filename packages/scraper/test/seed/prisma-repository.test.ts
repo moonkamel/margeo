@@ -233,6 +233,7 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
     const liste = await new PrismaSeedRepository(prisma).listToRecheck(new Date(clock), 1000);
     expect(liste.map((t) => t.externalId)).not.toContain('hors-seed');
     expect(liste.every((t) => t.catalogIdRecherche !== null)).toBe(true);
+    expect(await new PrismaSeedRepository(prisma).countNonRattachees()).toBe(1);
   });
 
   it('hard stop persistant : une campagne à 48 € ne lance plus aucun appel', async () => {

@@ -169,6 +169,11 @@ export interface SeedRepository {
   listToRecheck(before: Date, limit: number): Promise<TrackedState[]>;
   /** Annonces ACTIVE suivies dans la cellule : (catalogIdRecherche, marque, taille null = toutes). */
   countActive(cellule: Cellule): Promise<number>;
+  /**
+   * Annonces ACTIVE non rattachables à une cellule (catalogIdRecherche NULL, ancienne migration) :
+   * jamais re-vérifiées par le seed. Compteur interne `analysesNonRattachees`.
+   */
+  countNonRattachees(): Promise<number>;
   /** Parent connu de chaque sous-catégorie demandée (absentes = jamais observées). */
   subcategoryParents(ids: readonly number[]): Promise<Map<number, number>>;
   /** Sous-ensemble des identifiants déjà suivis. */

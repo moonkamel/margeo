@@ -1,8 +1,9 @@
 /**
  * Vérification du volume des cellules (doc 2b, section 2 bis ; décisions du 2026-11-04).
  *
- * - Budget dédié, campagne séparée `verify-YYYY-MM` : plafond 12 €, arrêt dur 10 €.
- * - Mesure : `maxItems` résultats (250 par défaut) sur l'URL de catalogue exacte de la cellule ;
+ * - Budget dédié, campagne séparée `verify-YYYY-MM` : plafond 12 €, arrêt dur 11 € (décision du
+ *   2026-11-04 : 15 cellules × 200 résultats à 3,57 € / 1 000 = 10,71 €).
+ * - Mesure : `maxItems` résultats (200 par défaut = seuil) sur l'URL de catalogue exacte de la cellule ;
  *   atteindre le plafond signifie « au moins maxItems annonces ». Seules les annonces dont la
  *   marque se rattache à la cellule (alias validés) sont comptées.
  * - Étape 1 : 3 cellules pilotes ; étape 2 : les 12 autres, seulement si les pilotes passent.
@@ -15,10 +16,10 @@ import { buildCellSearchUrl } from '../url.js';
 import type { SeedRepository } from './types.js';
 
 export const VERIFY_PLAFOND_CENTS = 1200;
-export const VERIFY_ARRET_DUR_CENTS = 1000;
+export const VERIFY_ARRET_DUR_CENTS = 1100;
 /** Seuil de volume : annonces actives de la marque dans la cellule. */
 export const VERIFY_SEUIL_ACTIVES = 200;
-export const VERIFY_MAX_ITEMS = 250;
+export const VERIFY_MAX_ITEMS = 200;
 /** Cellules pilotes (une par catégorie), repérées par leur marque. */
 export const PILOTES = ['Nike', 'Sézane', 'Apple'] as const;
 

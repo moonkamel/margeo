@@ -294,8 +294,11 @@ describe('runSeed — rattachement par catalogue + marque (jamais le libellé)',
       marque: 'Sézane',
       catalogIdRecherche: 13,
     });
-    await run({ cellules: [{ ...SEZANE, cibleActives: 1 }] });
+    const r = await run({ cellules: [{ ...SEZANE, cibleActives: 1 }] });
     expect(source.appels).toEqual([{ type: 'recheck', taille: 1 }]);
+    // Compteur interne : 1 annonce historique non rattachée, visible dans le résumé du run.
+    expect(r.analysesNonRattachees).toBe(1);
+    expect(r.details['analysesNonRattachees']).toBe(1);
   });
 
   it('arrêt dur : message « Budget seed à 80 % » avec prochain run et variable à ajuster', async () => {

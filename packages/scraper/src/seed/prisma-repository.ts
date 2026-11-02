@@ -141,6 +141,12 @@ export class PrismaSeedRepository implements SeedRepository {
     });
   }
 
+  async countNonRattachees() {
+    return this.prisma.trackedListing.count({
+      where: { statut: 'ACTIVE', catalogIdRecherche: null },
+    });
+  }
+
   async subcategoryParents(ids: readonly number[]) {
     if (ids.length === 0) return new Map<number, number>();
     const rows = await this.prisma.subcategoryToParent.findMany({

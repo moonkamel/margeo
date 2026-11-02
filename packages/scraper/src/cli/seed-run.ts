@@ -171,6 +171,8 @@ async function main(): Promise<number> {
           `|---|---|---|---|`,
           `| ${formatMilli(result.depenseRunMilli)} | ${formatMilli(result.depenseCampagneMilli)} | ${formatMilli(result.plafondMilli)} | ${formatMilli(plafondCents * 1000)} |`,
           '',
+          `Annonces historiques non rattachées (non re-vérifiées) : ${result.analysesNonRattachees}`,
+          '',
           `Vérifiées : ${result.annoncesVerifiees} · Nouvelles : ${result.nouvellesAnnonces} · Ventes : ${result.ventesDetectees} · Disparitions : ${result.disparitions} · Erreurs : ${result.erreurs}`,
           '',
           ...result.alertes.map((a) => `> ⚠️ ${a}`),

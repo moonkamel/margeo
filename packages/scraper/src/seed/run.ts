@@ -48,6 +48,8 @@ export interface RunSeedResult extends SeedRunSummary {
   depenseRunMilli: number;
   depenseCampagneMilli: number;
   plafondMilli: number;
+  /** Annonces ACTIVE hors seed (catalogIdRecherche NULL), non re-vérifiées : suivi interne. */
+  analysesNonRattachees: number;
   /** Message d'alerte à transmettre (arrêt dur, découverte coupée, anomalie de facturation). */
   alertes: string[];
 }
@@ -99,6 +101,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
   const startedAt = now();
   const runId = await repo.startRun(campagne, opts.budget.hardStopCents, startedAt);
   const depenseAvant = ledger.totalMilli;
+  const analysesNonRattachees = await repo.countNonRattachees();
   const alertes: string[] = [];
   const parCellule: Record<string, CelluleLog> = {};
   const rejets: Record<string, Rejets> = {};
@@ -359,6 +362,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
       cellules: parCellule,
       rejets,
       elargissements,
+      analysesNonRattachees,
       arret: arretMotif,
       decouverteCoupee: ledger.decouverteCoupee,
       depense: { suivi: snap.suivi, decouverte: snap.decouverte, total: snap.totalMilli },
@@ -370,6 +374,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     runId,
     statut,
     ...compteurs,
+    analysesNonRattachees,
     depenseRun: formatMilli(snap.totalMilli - depenseAvant),
     depenseCampagne: formatMilli(snap.totalMilli),
     alertes,
@@ -381,6 +386,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     depenseRunMilli: snap.totalMilli - depenseAvant,
     depenseCampagneMilli: snap.totalMilli,
     plafondMilli: snap.capMilli,
+    analysesNonRattachees,
     alertes,
   };
 }
