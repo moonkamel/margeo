@@ -624,3 +624,29 @@ dépôt `SEED_CRON_ACTIF` ne vaut pas `true` (job « cron-desactive » en succè
 aucun secret lu, aucune dépense). Le lancement manuel n'est pas concerné. `seed.yml` est en plus
 désactivé dans GitHub jusqu'au go du seed. Au go : réactiver le workflow, puis
 `SEED_CRON_ACTIF=true`.
+
+### 8.13 Premier run réel de vérification (2026-11-04) et corrections
+
+**Run `verify-volume` n° 3** (pilotes, `execute`) : configuration, connexion Supabase et migrations
+OK ; mesure de Baskets (H)|Nike **coupée** par Apify (TIMED-OUT à 280 s, 111 annonces sur 200).
+Cause : `fetchDetails` prend ~1 s par annonce, avec des pics à 35 s. Facturé 0,29 $ ; enregistré
+0,53 € (réservation maximale, par prudence). Lecture gratuite du dataset coupé : 111 annonces,
+**103 « Nike »** (93 %), plus « Nike Air » (4), « Nike x Nocta » (2), « Nike x Off-White » (1) et
+« Jordan » (1), non rattachés faute d'alias ; `brandTitle` présent sur les 111, y compris celles
+sans détails. La recherche en était à sa 2e page de 96 résultats : au moins 192 annonces Nike.
+
+Corrections (code) :
+
+- **Runs asynchrones** (`ApifyAsyncRunner`) : plus de limite à 300 s ; un run coupé reste lisible.
+- **Plafonds de plateforme sur chaque run** : `maxItems` exact et `maxTotalChargeUsd` = coût
+  réservé × 1,5 en dollars (plancher 0,10 $). Sans eux, Apify avait fixé 18,71 $ et 11 206 items.
+- **Coût enregistré** : max(estimation, coût rapporté par Apify) ; run coupé ou en échec =
+  réservation maximale. Une sous-estimation est plus dangereuse qu'une surestimation.
+- **Vérification sans `fetchDetails`** (comptage par `brandTitle`) ; le tarif de 240 c / 1 000
+  (détails inclus) est conservé pour la réservation : le coût réel sera plus bas (~1,80 $ / 1 000).
+- **RLS** activé sur toutes les tables (base de production le 2026-11-04 + migration) ; le test de
+  migration échoue si une table future n'a pas RLS.
+
+**Alias à arbitrer** : « Nike Air », « Nike x Nocta », « Nike x Off-White » (collaborations,
+gammes de prix différentes) et « Jordan » (sous-marque distincte) ne sont rattachés à aucune
+cellule ; à décider comme pour « Adidas Originals ».
