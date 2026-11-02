@@ -11,7 +11,7 @@ import {
   type BudgetConfig,
   type SeedTx,
 } from '../../src/seed/index.js';
-import { ALIAS_VALIDES } from './alias-reference.js';
+import { ALIAS_VALIDES, NON_RATTACHES } from './alias-reference.js';
 import { cellule, FakeSource, listing, SOUS_CATEGORIE_TEST } from './fake-source.js';
 
 /** Intégration sur Postgres réel : base temporaire migrée par `prisma migrate deploy`. */
@@ -64,8 +64,7 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
     );
     expect([...rows].sort(parAlias)).toEqual(attendu.sort(parAlias));
     const r = new BrandResolver(Object.keys(ALIAS_VALIDES), rows);
-    for (const texte of ['NB', 'AMI', 'Polo', 'Adidas Originals'])
-      expect(r.resolve(texte)).toBeNull();
+    for (const texte of NON_RATTACHES) expect(r.resolve(texte)).toBeNull();
   });
 
   it('cycle complet : découverte, vente, projection, dépense persistée par run', async () => {

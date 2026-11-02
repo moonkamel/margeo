@@ -23,6 +23,8 @@ const SUBCAT_DOWN = 'rollbacks/20261104000000_tracked_listing_subcategory.down.s
 const ALIAS = 'migrations/20261104010000_brand_alias/migration.sql';
 const ALIAS_DOWN = 'rollbacks/20261104010000_brand_alias.down.sql';
 const S2P = 'migrations/20261104020000_subcategory_to_parent/migration.sql';
+const ALIAS2 = 'migrations/20261104040000_brand_alias_sous_gammes/migration.sql';
+const ALIAS2_DOWN = 'rollbacks/20261104040000_brand_alias_sous_gammes.down.sql';
 const S2P_DOWN = 'rollbacks/20261104020000_subcategory_to_parent.down.sql';
 
 const created: string[] = [];
@@ -152,7 +154,7 @@ describe.skipIf(!DATABASE_URL)('migration TrackedListing — base vide', () => {
     expect(sansRls.rows.map((r) => r.relname)).toEqual([]);
     // Le propriétaire (rôle de Prisma) n'est pas bloqué par RLS sans policy.
     const lecture = await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`);
-    expect(lecture.rows[0].n).toBe(29);
+    expect(lecture.rows[0].n).toBe(34);
     await client.end();
   });
 });
@@ -534,5 +536,42 @@ describe.skipIf(!DATABASE_URL)('migration SubcategoryToParent + catalogIdRecherc
     const r = await client.query(`SELECT count(*)::int AS n FROM "TrackedListing"`);
     expect(r.rows[0].n).toBe(4);
     await apply(client, S2P);
+  });
+});
+
+describe.skipIf(!DATABASE_URL)('migration BrandAlias — sous-gammes du 2026-11-04', () => {
+  let client: pg.Client;
+
+  beforeAll(async () => {
+    if (!DATABASE_URL) return;
+    ({ client } = await freshDb());
+    for (const m of [INIT, TRACKED, SEED_RUN, SUBCAT, ALIAS, S2P, ALIAS2]) await apply(client, m);
+  });
+  afterAll(async () => {
+    await client?.end();
+  });
+
+  it('5 alias ajoutés et validés ; Jordan et Yeezy absents', async () => {
+    const r = await client.query(
+      `SELECT alias, marque FROM "BrandAlias" WHERE "dateValidation" = '2026-11-04T00:00:00Z' ORDER BY alias`,
+    );
+    expect(r.rows).toEqual([
+      { alias: 'Adidas Equipment', marque: 'Adidas' },
+      { alias: 'Adidas Terrex', marque: 'Adidas' },
+      { alias: 'Nike Air', marque: 'Nike' },
+      { alias: 'Nike x Nocta', marque: 'Nike' },
+      { alias: 'Nike x Off-White', marque: 'Nike' },
+    ]);
+    const exclus = await client.query(
+      `SELECT alias FROM "BrandAlias" WHERE lower(alias) IN ('jordan', 'yeezy', 'adidas originals')`,
+    );
+    expect(exclus.rows).toEqual([]);
+  });
+
+  it('rollback : retour aux 29 alias, réapplicable', async () => {
+    await apply(client, ALIAS2_DOWN);
+    expect((await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`)).rows[0].n).toBe(29);
+    await apply(client, ALIAS2);
+    expect((await client.query(`SELECT count(*)::int AS n FROM "BrandAlias"`)).rows[0].n).toBe(34);
   });
 });

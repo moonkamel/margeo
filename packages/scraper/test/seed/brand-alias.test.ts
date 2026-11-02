@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { BrandAliasError, BrandResolver, type BrandAliasRow } from '../../src/seed/index.js';
-import { ALIAS_VALIDES } from './alias-reference.js';
+import { ALIAS_VALIDES, NON_RATTACHES } from './alias-reference.js';
 
 const CANONIQUES = Object.keys(ALIAS_VALIDES);
 const ROWS: BrandAliasRow[] = Object.entries(ALIAS_VALIDES).flatMap(([marque, aliases]) =>
@@ -14,12 +14,9 @@ describe('BrandResolver — non-régression section 7', () => {
     expect(r.resolve(alias)).toBe(marque);
   });
 
-  it.each(['NB', 'AMI', 'Polo', 'Adidas Originals'])(
-    '« %s » n’est rattaché à AUCUNE marque',
-    (texte) => {
-      expect(r.resolve(texte)).toBeNull();
-    },
-  );
+  it.each(NON_RATTACHES)('« %s » n’est rattaché à AUCUNE marque', (texte) => {
+    expect(r.resolve(texte)).toBeNull();
+  });
 
   it('casse et espaces ignorés, accents conservés', () => {
     expect(r.resolve('  nIkE ')).toBe('Nike');
