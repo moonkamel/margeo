@@ -32,3 +32,18 @@ describe('seed:run — CLI', () => {
     expect(r.status).toBe(2);
   });
 });
+
+describe('seed:verify-volume — CLI', () => {
+  it('sans --execute : dry-run des pilotes, aucun secret requis, sortie 0', () => {
+    const r = cli('src/cli/seed-verify-volume.ts', []);
+    expect(r.status, r.stderr).toBe(0);
+    expect(r.stdout).toMatch(/DRY-RUN.*étape pilotes/);
+    expect(r.stdout).toMatch(/dry-run, aucune dépense/);
+  });
+
+  it('--execute sans configuration : sortie 2, aucun appel', () => {
+    const r = cli('src/cli/seed-verify-volume.ts', ['--execute', '--cout-par-1000', '260']);
+    expect(r.status).toBe(2);
+    expect(r.stderr).toMatch(/APIFY_TOKEN manquant/);
+  });
+});

@@ -17,7 +17,8 @@
     "db:migrate": "pnpm --filter @margeo/db migrate:deploy",
     "infra:up": "docker compose -f infra/docker-compose.yml up -d",
     "scraper:inspect": "pnpm --filter @margeo/scraper inspect",
-    "seed:run": "pnpm --filter @margeo/scraper seed:run"
+    "seed:run": "pnpm --filter @margeo/scraper seed:run",
+    "seed:verify-volume": "pnpm --filter @margeo/scraper seed:verify-volume"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

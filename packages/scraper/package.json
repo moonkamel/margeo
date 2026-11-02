@@ -15,7 +15,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "inspect": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/inspect.ts",
-    "seed:run": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/seed-run.ts"
+    "seed:run": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/seed-run.ts",
+    "seed:verify-volume": "tsx --env-file-if-exists=../../.env --conditions=@margeo/source src/cli/seed-verify-volume.ts"
   },
   "dependencies": {
     "@margeo/db": "workspace:*",

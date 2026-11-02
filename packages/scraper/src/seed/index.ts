@@ -8,3 +8,4 @@ export * from './config.js';
 export * from './brand-alias.js';
 export * from './campagne.js';
 export * from './dry-run.js';
+export * from './verify-volume.js';
