@@ -48,8 +48,8 @@ describe('ciblesVerification', () => {
   });
 });
 
-it('valeurs par défaut : 200 résultats par cellule, arrêt dur 11 €', () => {
-  expect([VERIFY_MAX_ITEMS, VERIFY_ARRET_DUR_CENTS]).toEqual([200, 1100]);
+it('valeurs par défaut : 250 résultats par cellule (> seuil de 200), arrêt dur 11 €', () => {
+  expect([VERIFY_MAX_ITEMS, VERIFY_ARRET_DUR_CENTS]).toEqual([250, 1100]);
 });
 
 describe('runVerifyVolume — exécution en mock', () => {

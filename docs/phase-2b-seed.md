@@ -650,3 +650,16 @@ Corrections (code) :
 **Alias à arbitrer** : « Nike Air », « Nike x Nocta », « Nike x Off-White » (collaborations,
 gammes de prix différentes) et « Jordan » (sous-marque distincte) ne sont rattachés à aucune
 cellule ; à décider comme pour « Adidas Originals ».
+
+### 8.14 Vérification à 250 résultats : limites assumées (2026-11-04)
+
+`maxItems` de la vérification porté à **250** (au lieu de 200) : avec un plafond égal au seuil, une
+cellule ne passait que si 100 % des résultats de la recherche étaient de la marque (Nike : ~99 %
+avec les alias) — un faux « sous le seuil » causé par notre propre plafond. Réservation : 0,65 € par
+cellule (1,95 € pour les 3 pilotes, 9,75 € pour les 15, sous l'arrêt dur de 11 €).
+
+1. **On mesure un plancher, pas un volume exact.** abotapi n'expose pas de compteur total : une
+   cellule à 198 annonces de la marque sur 250 résultats peut en compter 198, 300 ou 800.
+2. **La pureté de la recherche varie selon la marque** (annonces « style Sézane », marques
+   copiant l'esthétique…). **Plan B** : si Sézane sort INCOMPLET ou sous le seuil à 250, relance de
+   cette seule cellule à 300 (`--max-items 300`).

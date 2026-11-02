@@ -3,7 +3,9 @@
  *
  * - Budget dédié, campagne séparée `verify-YYYY-MM` : plafond 12 €, arrêt dur 11 € (décision du
  *   2026-11-04 : 15 cellules × 200 résultats à 3,57 € / 1 000 = 10,71 €).
- * - Mesure : `maxItems` résultats (200 par défaut = seuil) sur l'URL de catalogue exacte de la cellule ;
+ * - Mesure : `maxItems` résultats (250 par défaut, décision du 2026-11-04 : avec un plafond égal au
+ *   seuil, une cellule ne passerait que si 100 % des résultats étaient de la marque) sur l'URL de
+ *   catalogue exacte de la cellule ;
  *   atteindre le plafond signifie « au moins maxItems annonces ». Seules les annonces dont la
  *   marque se rattache à la cellule (alias validés) sont comptées.
  * - Étape 1 : 3 cellules pilotes ; étape 2 : les 12 autres, seulement si les pilotes passent.
@@ -25,7 +27,7 @@ export const VERIFY_PLAFOND_CENTS = 1200;
 export const VERIFY_ARRET_DUR_CENTS = 1100;
 /** Seuil de volume : annonces actives de la marque dans la cellule. */
 export const VERIFY_SEUIL_ACTIVES = 200;
-export const VERIFY_MAX_ITEMS = 200;
+export const VERIFY_MAX_ITEMS = 250;
 /**
  * Cellules pilotes, repérées par leur marque. Décision du 2026-11-04 : Apple (identifiant de
  * « Casques audio et écouteurs » non relevé) est remplacé par Adidas et passe en 2e vague.

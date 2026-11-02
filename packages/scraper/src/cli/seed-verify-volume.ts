@@ -2,7 +2,7 @@
  * Vérification du volume des cellules. DRY-RUN PAR DÉFAUT : sans --execute, aucun appel Apify,
  * aucune base, aucun token lu — cellules, URL de catalogue et coût maximal estimé.
  *
- *   pnpm seed:verify-volume [--etape pilotes|reste] [--max-items 200] [--cout-par-1000 260]
+ *   pnpm seed:verify-volume [--etape pilotes|reste] [--max-items 250] [--cout-par-1000 260]
  *   pnpm seed:verify-volume --execute --etape pilotes --cout-par-1000 <tarif réel>
  *
  * Budget dédié : campagne verify-YYYY-MM, plafond 12 €, arrêt dur 11 €.
