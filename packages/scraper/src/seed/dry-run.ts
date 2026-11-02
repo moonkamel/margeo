@@ -42,6 +42,10 @@ export interface SeedPlanTarif {
   suiviMoisMilli: number;
   /** Jour du mois où l'arrêt dur serait atteint au rythme maximal (null : jamais). */
   jourArretDur: number | null;
+  /** Jour où l'enveloppe découverte (cumulée) est épuisée au rythme maximal (null : jamais). */
+  jourCoupureDecouverte: number | null;
+  /** Dépense cumulée à 28 jours au rythme maximal (bornée par l'arrêt dur). */
+  total4SemainesMilli: number;
 }
 
 export interface SeedPlan {
@@ -77,13 +81,24 @@ export function planSeedRun(
     const budget = budgetDepuisPlafond(opts.plafondCents, t, opts.coutParRunMilli);
     // Frais fixes : un run par lot de re-vérification, un run de découverte par cellule.
     const suiviJourMilli = suiviJour * t + lotsJour * opts.coutParRunMilli;
-    const decouverteJourMaxMilli = Math.min(
-      decouverteJourMax * t + cellules.length * opts.coutParRunMilli,
-      budget.decouverteCents * 1000,
-    );
-    const parJour = suiviJourMilli + decouverteJourMaxMilli;
+    const decouverteJourMaxMilli = decouverteJourMax * t + cellules.length * opts.coutParRunMilli;
+    // Simulation jour par jour au rythme maximal : la découverte s'arrête quand SON enveloppe
+    // CUMULÉE est épuisée (elle est coupée en premier) ; le suivi continue jusqu'à l'arrêt dur.
     const arret = budget.hardStopCents * MILLI_PAR_CENTIME;
-    const jourArretDur = parJour === 0 ? null : Math.ceil(arret / parJour);
+    let resteDecouverte = budget.decouverteCents * MILLI_PAR_CENTIME;
+    let cumul = 0;
+    let jourArretDur: number | null = null;
+    let jourCoupureDecouverte: number | null = null;
+    let total4SemainesMilli: number | null = null;
+    for (let jour = 1; jour <= Math.max(jours, 28); jour++) {
+      const decouverte = Math.min(decouverteJourMaxMilli, resteDecouverte);
+      resteDecouverte -= decouverte;
+      if (decouverte < decouverteJourMaxMilli && jourCoupureDecouverte === null)
+        jourCoupureDecouverte = jour;
+      cumul = Math.min(arret, cumul + suiviJourMilli + decouverte);
+      if (cumul >= arret && jourArretDur === null) jourArretDur = jour;
+      if (jour === 28) total4SemainesMilli = cumul;
+    }
     return {
       coutPar1000Cents: t,
       budget,
@@ -91,6 +106,11 @@ export function planSeedRun(
       decouverteJourMaxMilli,
       suiviMoisMilli: suiviJourMilli * jours,
       jourArretDur: jourArretDur !== null && jourArretDur <= jours ? jourArretDur : null,
+      jourCoupureDecouverte:
+        jourCoupureDecouverte !== null && jourCoupureDecouverte <= jours
+          ? jourCoupureDecouverte
+          : null,
+      total4SemainesMilli: total4SemainesMilli ?? cumul,
     };
   });
   return {
@@ -138,6 +158,12 @@ export function formatSeedPlan(plan: SeedPlan, plafondCents: number, campagne: s
       `  Coût max par jour : suivi ${formatMilli(t.suiviJourMilli)} + découverte ${formatMilli(t.decouverteJourMaxMilli)}`,
     );
     l.push(`  Suivi sur 30 jours : ${formatMilli(t.suiviMoisMilli)}`);
+    l.push(
+      t.jourCoupureDecouverte === null
+        ? '  Enveloppe découverte non épuisée sur 30 jours'
+        : `  Enveloppe découverte (${eur(b.decouverteCents)}) épuisée vers le jour ${t.jourCoupureDecouverte} : découverte coupée, le suivi continue`,
+    );
+    l.push(`  Dépense cumulée à 4 semaines (28 j) : ${formatMilli(t.total4SemainesMilli)}`);
     l.push(
       t.jourArretDur === null
         ? '  Arrêt dur non atteint sur 30 jours au rythme maximal'

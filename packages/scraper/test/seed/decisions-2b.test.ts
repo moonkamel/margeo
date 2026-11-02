@@ -140,8 +140,26 @@ describe('planSeedRun — dry-run (aucun appel, aucune base)', () => {
       batchSize: 50,
       maxDecouverteParCellule: 5,
     }).tarifs;
-    // 600 × 1 c + min(75 c, 1 200 c) = 6,75 €/jour → 80 € atteints le 12e jour.
+    // 600 × 1 c + 75 c = 6,75 €/jour (enveloppe découverte non épuisée) → 80 € le 12e jour.
     expect(t?.jourArretDur).toBe(12);
+  });
+
+  it('abotapi (240 c / 1 000, 5 c par run, lots de 100) : découverte coupée au jour 13, pas d’arrêt dur', () => {
+    const plan = planSeedRun(readCellules(path), {
+      plafondCents: 10_000,
+      tarifs: [240],
+      coutParRunMilli: 5000,
+      batchSize: 100,
+      maxDecouverteParCellule: 5,
+    });
+    const [t] = plan.tarifs;
+    // Suivi : 600 × 0,24 c + 6 runs × 5 c = 1,74 €/j ; découverte : 75 × 0,24 c + 15 × 5 c = 0,93 €/j.
+    expect([t?.suiviJourMilli, t?.decouverteJourMaxMilli]).toEqual([174_000, 93_000]);
+    // 12 € de découverte : 12 × 0,93 = 11,16 € → épuisée le 13e jour, coupée ensuite.
+    expect(t?.jourCoupureDecouverte).toBe(13);
+    // 28 × 1,74 € + 12 € = 60,72 € ; 30 jours : 64,20 € < 80 € → pas d'arrêt dur.
+    expect(t?.total4SemainesMilli).toBe(6_072_000);
+    expect(t?.jourArretDur).toBeNull();
   });
 });
 
