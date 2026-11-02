@@ -13,6 +13,7 @@
 import { appendFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import { createPrismaClient } from '@margeo/db';
+import { inputBuildersPourActeur } from '../drivers/abotapi-input.js';
 import { ApifyDriver } from '../drivers/apify.js';
 import {
   ApifySeedSource,
@@ -145,8 +146,10 @@ async function main(): Promise<number> {
   // ── EXECUTE ──────────────────────────────────────────────────────────────────────────────
   let env;
   let budget;
+  let inputBuilders;
   try {
     env = requireSeedEnv(process.env);
+    inputBuilders = inputBuildersPourActeur(env.apifyActorId);
     const coutParResultatMilli = intArg('cout-par-1000', values['cout-par-1000'] ?? tarifEnv);
     if (coutParResultatMilli === 0)
       throw new SeedConfigError('--cout-par-1000 doit être > 0 (tarif réel de l’acteur)');
@@ -176,6 +179,7 @@ async function main(): Promise<number> {
     const driver = new ApifyDriver({
       actorId: env.apifyActorId,
       token: env.apifyToken,
+      inputBuilders,
       // Timeout explicite d'un run (lot de 100) : au-delà, repli automatique à 50.
       timeoutSecs: 120,
     });

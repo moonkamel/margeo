@@ -4,10 +4,10 @@ import { describe, expect, it } from 'vitest';
 
 /** CLI réelle, environnement VIDÉ de tout secret : le dry-run ne doit rien lire d'autre. */
 const PKG = fileURLToPath(new URL('../..', import.meta.url));
-const cli = (script: string, args: string[]) =>
+const cli = (script: string, args: string[], extraEnv: Record<string, string> = {}) =>
   spawnSync('pnpm', ['exec', 'tsx', '--conditions=@margeo/source', script, ...args], {
     cwd: PKG,
-    env: { PATH: process.env['PATH'] ?? '', HOME: process.env['HOME'] ?? '' },
+    env: { PATH: process.env['PATH'] ?? '', HOME: process.env['HOME'] ?? '', ...extraEnv },
     encoding: 'utf8',
     timeout: 120_000,
   });
@@ -45,6 +45,26 @@ describe('seed:verify-volume — CLI', { timeout: 150_000 }, () => {
     const r = cli('src/cli/seed-verify-volume.ts', ['--execute', '--cout-par-1000', '260']);
     expect(r.status).toBe(2);
     expect(r.stderr).toMatch(/APIFY_TOKEN manquant/);
+  });
+});
+
+describe('acteur sans mapping d’input validé — CLI', { timeout: 150_000 }, () => {
+  // Valeurs factices : la vérification de l'acteur échoue AVANT toute connexion (base, Apify).
+  const env = {
+    APIFY_TOKEN: 'factice',
+    APIFY_ACTOR_ID: 'kazkn/vinted-smart-scraper',
+    DATABASE_URL: 'postgresql://factice@127.0.0.1:1/factice',
+  };
+  it.each([
+    ['src/cli/seed-run.ts', ['--execute', '--cout-par-1000', '240', '--cout-par-run', '5']],
+    [
+      'src/cli/seed-verify-volume.ts',
+      ['--execute', '--cout-par-1000', '240', '--cout-par-run', '5'],
+    ],
+  ])('%s --execute → sortie 2', (script, args) => {
+    const r = cli(script, args, env);
+    expect(r.status).toBe(2);
+    expect(r.stdout + r.stderr).toMatch(/sans mapping d'input validé/);
   });
 });
 

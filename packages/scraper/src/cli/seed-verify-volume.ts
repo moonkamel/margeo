@@ -10,6 +10,7 @@
  */
 import { parseArgs } from 'node:util';
 import { createPrismaClient } from '@margeo/db';
+import { inputBuildersPourActeur } from '../drivers/abotapi-input.js';
 import { ApifyDriver } from '../drivers/apify.js';
 import { normalizeVintedItem } from '../normalize.js';
 import {
@@ -103,10 +104,12 @@ async function main(): Promise<number> {
   }
 
   let env;
+  let inputBuilders;
   let tarif: number;
   let coutParRunMilli: number;
   try {
     env = requireSeedEnv(process.env);
+    inputBuilders = inputBuildersPourActeur(env.apifyActorId);
     tarif = intArg('cout-par-1000', tarifArg);
     coutParRunMilli = centsArgToMilli('cout-par-run', runArg);
   } catch (err) {
@@ -118,6 +121,7 @@ async function main(): Promise<number> {
     const driver = new ApifyDriver({
       actorId: env.apifyActorId,
       token: env.apifyToken,
+      inputBuilders,
       timeoutSecs: 280,
     });
     const r = await runVerifyVolume({
