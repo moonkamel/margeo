@@ -171,6 +171,10 @@ model TrackedListing {
   soldAt            DateTime?            @db.Timestamptz(3)
   soldPrixCents     Int?
   soldSource        SoldSource?
+  /// Sous-catégorie Vinted (catalogue feuille) relevée à la première observation, immuable
+  /// ensuite (trigger). Permet de filtrer une catégorie parente crawlée sans re-crawl.
+  subcategoryId     Int?
+  subcategoryLabel  String?
 
   observations ListingObservation[]
   vente        SoldObservation?

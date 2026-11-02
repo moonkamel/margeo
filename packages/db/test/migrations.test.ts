@@ -17,6 +17,9 @@ const sql = (rel: string) =>
 const INIT = 'migrations/20261102000000_init/migration.sql';
 const TRACKED = 'migrations/20261103000000_tracked_listing/migration.sql';
 const TRACKED_DOWN = 'rollbacks/20261103000000_tracked_listing.down.sql';
+const SEED_RUN = 'migrations/20261103010000_seed_run/migration.sql';
+const SUBCAT = 'migrations/20261104000000_tracked_listing_subcategory/migration.sql';
+const SUBCAT_DOWN = 'rollbacks/20261104000000_tracked_listing_subcategory.down.sql';
 
 const created: string[] = [];
 let admin: pg.Client;
@@ -340,5 +343,78 @@ describe.skipIf(!DATABASE_URL)('migration TrackedListing — base existante', ()
     await apply(client, TRACKED);
     const r = await client.query(`SELECT count(*)::int AS n FROM "TrackedListing"`);
     expect(r.rows[0].n).toBe(4);
+  });
+});
+
+describe.skipIf(!DATABASE_URL)('migration TrackedListing.subcategory — base existante', () => {
+  let client: pg.Client;
+  let avant: string[];
+
+  beforeAll(async () => {
+    if (!DATABASE_URL) return;
+    ({ client } = await freshDb());
+    await apply(client, INIT);
+    await seedExisting(client);
+    await apply(client, TRACKED);
+    await apply(client, SEED_RUN);
+    avant = await schemaFingerprint(client);
+    await apply(client, SUBCAT);
+  });
+  afterAll(async () => {
+    await client?.end();
+  });
+
+  const sub = async (ext: string) =>
+    (
+      await client.query(
+        `SELECT "subcategoryId", "subcategoryLabel" FROM "TrackedListing" WHERE "externalId" = $1`,
+        [ext],
+      )
+    ).rows[0];
+  const setSub = (ext: string, id: number | null, label: string | null) =>
+    client.query(
+      `UPDATE "TrackedListing" SET "subcategoryId" = $2, "subcategoryLabel" = $3 WHERE "externalId" = $1`,
+      [ext, id, label],
+    );
+
+  it('colonnes nullables ajoutées, annonces existantes intactes et à NULL', async () => {
+    const r = await client.query(`SELECT count(*)::int AS n FROM "TrackedListing"`);
+    expect(r.rows[0].n).toBe(4);
+    expect(await sub('100')).toEqual({ subcategoryId: null, subcategoryLabel: null });
+    const fp = await schemaFingerprint(client);
+    expect(fp).toContain('TrackedListing.subcategoryId:int4:YES:');
+    expect(fp).toContain('TrackedListing.subcategoryLabel:text:YES:');
+  });
+
+  it('écriture unique : NULL → valeur accepté, valeur identique accepté, autre valeur refusé', async () => {
+    await setSub('100', 1811, 'Pulls à col roulé');
+    expect(await sub('100')).toEqual({
+      subcategoryId: 1811,
+      subcategoryLabel: 'Pulls à col roulé',
+    });
+    await expect(setSub('100', 1811, 'Pulls à col roulé')).resolves.toBeDefined();
+    await expect(setSub('100', 1812, 'Pulls à col roulé')).rejects.toThrow(/immuables/);
+    await expect(setSub('100', 1811, 'Autre')).rejects.toThrow(/immuables/);
+    await expect(setSub('100', null, null)).rejects.toThrow(/immuables/);
+    // Les autres colonnes restent modifiables.
+    await client.query(
+      `UPDATE "TrackedListing" SET "prixCourantCents" = 2400 WHERE "externalId" = '100'`,
+    );
+    expect(await sub('100')).toEqual({
+      subcategoryId: 1811,
+      subcategoryLabel: 'Pulls à col roulé',
+    });
+  });
+
+  it('rollback : schéma précédent restauré à l’identique, annonces conservées, réapplicable', async () => {
+    await apply(client, SUBCAT_DOWN);
+    expect(await schemaFingerprint(client)).toEqual(avant);
+    const r = await client.query(
+      `SELECT "externalId", "prixCourantCents" FROM "TrackedListing" ORDER BY 1`,
+    );
+    expect(r.rows.map((x) => x.externalId)).toEqual(['100', '200', '300', '400']);
+    expect(r.rows[0].prixCourantCents).toBe(2400);
+    await apply(client, SUBCAT);
+    expect(await sub('100')).toEqual({ subcategoryId: null, subcategoryLabel: null });
   });
 });
