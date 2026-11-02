@@ -8,7 +8,8 @@
  * La normalisation et la détection de vente lisent le payload brut AVANT ce filtrage :
  * seule la copie stockée (`ListingObservation.payload`) est réduite.
  *
- * Toute évolution de cette liste doit être validée.
+ * Toute évolution de cette liste doit être validée. Retirés le 2026-11-04 : `itemClosingAction`,
+ * `item_closing_action` (ambigus : actions de modération Vinted, non utilisés).
  */
 
 /** Champs scalaires conservés tels quels (noms de chaque source pour un même sens). */
@@ -25,6 +26,7 @@ const CHAMPS_AUTORISES: ReadonlySet<string> = new Set([
   'brand',
   'brandId',
   'size',
+  'sizeId',
   'condition',
   'isReserved',
   'isHidden',
@@ -47,6 +49,7 @@ const CHAMPS_AUTORISES: ReadonlySet<string> = new Set([
   'catalog_title',
   'category_title',
   'size_title',
+  'size_id',
   'status',
   'status_id',
   'is_reserved',
@@ -54,8 +57,6 @@ const CHAMPS_AUTORISES: ReadonlySet<string> = new Set([
   'is_closed',
   'is_sold',
   'sold',
-  'itemClosingAction',
-  'item_closing_action',
   'favourite_count',
   'view_count',
   'created_at',

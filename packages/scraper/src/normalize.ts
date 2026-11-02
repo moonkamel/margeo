@@ -1,4 +1,5 @@
 import { normalizedListingSchema, type Etat, type NormalizedListing } from '@margeo/shared';
+import { adaptActorItem } from './adapters/abotapi.js';
 import { isDeletedPayload, isSoldPayload } from './detection.js';
 
 /**
@@ -205,7 +206,8 @@ function readVendeur(
 /**
  * Normalise un item brut. `now` est injecté pour que le calcul d'ancienneté reste déterministe.
  */
-export function normalizeVintedItem(input: unknown, now: Date = new Date()): NormalizeResult {
+export function normalizeVintedItem(raw: unknown, now: Date = new Date()): NormalizeResult {
+  const input = adaptActorItem(raw);
   if (!isRecord(input)) {
     return { ok: false, reason: 'invalid_payload', detail: 'payload non objet' };
   }

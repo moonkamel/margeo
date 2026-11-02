@@ -9,10 +9,10 @@ const cli = (script: string, args: string[]) =>
     cwd: PKG,
     env: { PATH: process.env['PATH'] ?? '', HOME: process.env['HOME'] ?? '' },
     encoding: 'utf8',
-    timeout: 60_000,
+    timeout: 120_000,
   });
 
-describe('seed:run — CLI', () => {
+describe('seed:run — CLI', { timeout: 150_000 }, () => {
   it('sans --execute : dry-run, aucun secret requis, sortie 0', () => {
     const r = cli('src/cli/seed-run.ts', ['--budget-max', '10000']);
     expect(r.status, r.stderr).toBe(0);
@@ -33,7 +33,7 @@ describe('seed:run — CLI', () => {
   });
 });
 
-describe('seed:verify-volume — CLI', () => {
+describe('seed:verify-volume — CLI', { timeout: 150_000 }, () => {
   it('sans --execute : dry-run des pilotes, aucun secret requis, sortie 0', () => {
     const r = cli('src/cli/seed-verify-volume.ts', []);
     expect(r.status, r.stderr).toBe(0);

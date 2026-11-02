@@ -1,5 +1,6 @@
 import type { ApifyDriver } from '../drivers/apify.js';
 import { isClosedPayload, isSoldPayload } from '../detection.js';
+import { adaptActorItem } from '../adapters/abotapi.js';
 import { normalizeVintedItem } from '../normalize.js';
 import { buildCellSearchUrl, parseVintedItemUrl } from '../url.js';
 import type { Cellule, DiscoveredListing, RecheckResult, SeedSource } from './types.js';
@@ -56,7 +57,9 @@ export class ApifySeedSource implements SeedSource {
           ? { url, outcome: 'not_found' }
           : { url, outcome: 'illisible', detail: n.detail };
       }
-      const outcome = isSoldPayload(raw) ? 'sold' : isClosedPayload(raw) ? 'closed' : 'active';
+      // Détection sur la forme « API Vinted » (adaptateur abotapi le cas échéant).
+      const vu = adaptActorItem(raw);
+      const outcome = isSoldPayload(vu) ? 'sold' : isClosedPayload(vu) ? 'closed' : 'active';
       return { url, outcome, listing: n.listing, payload: raw };
     });
     return { results, resultatsFactures: items.length };

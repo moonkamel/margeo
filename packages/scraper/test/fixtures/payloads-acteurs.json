@@ -90,5 +90,72 @@
     "sellerFeedbackRating": 7,
     "sellerUsername": "x-sellerUsername",
     "size": "S"
+  },
+  "abotapiNike": {
+    "itemId": "900000001",
+    "title": "Nike Air Max (fixture)",
+    "url": "https://www.vinted.fr/items/900000001-nike-air-max",
+    "path": "/items/900000001-nike-air-max",
+    "brandTitle": "Nike",
+    "priceAmount": 30,
+    "currency": "EUR",
+    "isVisible": null,
+    "promoted": false,
+    "photos": [
+      {
+        "id": null,
+        "url": "https://example.invalid/photo.webp",
+        "width": 468,
+        "height": 624,
+        "isMain": true
+      }
+    ],
+    "photoCount": 1,
+    "image": "https://example.invalid/photo.webp",
+    "favouriteCount": 3,
+    "viewCount": null,
+    "isClosed": null,
+    "isHeavyBulky": null,
+    "itemClosingAction": null,
+    "serviceFee": 2.2,
+    "totalPrice": 32.2,
+    "sellerId": "1",
+    "sellerPhoto": null,
+    "isBusinessSeller": false,
+    "sellerUrl": "https://example.invalid/member/1",
+    "seller": {
+      "id": 1,
+      "username": "pseudo-fictif",
+      "photo": null,
+      "business": false,
+      "feedbackCount": 1,
+      "feedbackRating": 1
+    },
+    "scrapedAt": "2026-11-04T12:00:00+00:00",
+    "description": "texte libre fictif",
+    "mainImage": "https://example.invalid/photo.webp",
+    "conditionSchema": "UsedCondition",
+    "categoryPath": "Hommes Baskets",
+    "category": "Hommes Baskets",
+    "colors": ["Gris"],
+    "size": "42",
+    "color": "Gris",
+    "condition": "Très bon état",
+    "catalogId": "1242",
+    "categoryId": "1242",
+    "isReserved": false,
+    "isHidden": false,
+    "instantBuy": true,
+    "canBuy": true,
+    "brand": {
+      "id": "53",
+      "title": "Nike",
+      "slug": "nike"
+    },
+    "brandId": "53",
+    "sellerBusiness": false,
+    "sellerFeedbackCount": 1,
+    "sellerFeedbackRating": 1,
+    "sellerUsername": "pseudo-fictif"
   }
 }

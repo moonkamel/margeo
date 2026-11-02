@@ -5,7 +5,7 @@ import { sanitizeListingPayload } from '../src/index.js';
 /** Payloads synthétiques : mêmes clés que les sorties réelles kazkn et abotapi (2026-11-04). */
 const PAYLOADS = JSON.parse(
   readFileSync(new URL('./fixtures/payloads-acteurs.json', import.meta.url), 'utf8'),
-) as Record<'kazkn' | 'abotapiDetails', Record<string, unknown>>;
+) as Record<'kazkn' | 'abotapiDetails' | 'abotapiNike', Record<string, unknown>>;
 
 const INTERDITS = /^(seller|description$|photos?$|photoCount$|image$|mainImage$|user$|country$)/i;
 
@@ -29,8 +29,10 @@ describe('sanitizeListingPayload — minimisation RGPD', () => {
     });
     for (const k of ['itemId', 'title', 'url', 'priceAmount', 'currency', 'size', 'condition'])
       expect(out).toHaveProperty(k);
-    for (const k of ['isReserved', 'isHidden', 'isClosed', 'itemClosingAction', 'scrapedAt'])
+    for (const k of ['isReserved', 'isHidden', 'isClosed', 'scrapedAt'])
       expect(out).toHaveProperty(k);
+    // Retiré le 2026-11-04 : champ ambigu (actions de modération), non utilisé.
+    expect(out).not.toHaveProperty('itemClosingAction');
   });
 
   it('kazkn : champs utiles conservés', () => {
@@ -38,6 +40,22 @@ describe('sanitizeListingPayload — minimisation RGPD', () => {
     expect(out).toMatchObject({ brand: 'Nike', isSold: false, price: 5, currency: 'EUR' });
     for (const k of ['id', 'title', 'url', 'size', 'condition', 'favouriteCount', 'viewCount'])
       expect(out).toHaveProperty(k);
+  });
+
+  it('taille conservée sous toutes ses variantes (niveau catégorie, marque, taille)', () => {
+    expect(sanitizeListingPayload({ size: '42' })).toEqual({ size: '42' });
+    expect(sanitizeListingPayload({ size_title: 'M', sizeId: 207, size_id: 4 })).toEqual({
+      size_title: 'M',
+      sizeId: 207,
+      size_id: 4,
+    });
+    expect(sanitizeListingPayload(PAYLOADS.abotapiNike)).toMatchObject({ size: '42' });
+  });
+
+  it('item_closing_action / itemClosingAction jamais stockés', () => {
+    expect(
+      sanitizeListingPayload({ id: 1, itemClosingAction: 'sold', item_closing_action: 'sold' }),
+    ).toEqual({ id: 1 });
   });
 
   it('allowlist : un champ inconnu n’est jamais stocké (ex. sellerEmail, contact)', () => {
