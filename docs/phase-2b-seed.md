@@ -4,6 +4,28 @@
 > `valide: false` dans `packages/scraper/seed/cellules.json`, et le CLI refuse de crawler une
 > cellule non validée.
 
+## 0. Prérequis de la nouvelle session (dans cet ordre, rien d'autre avant)
+
+1. **Libellé exact de la catégorie pulls**. On lit le catalogue (`curl https://www.vinted.fr/catalog`
+   ou URL équivalente), sans test de volume ni appel Apify.
+   - On en relève l'identifiant et le slug de catalogue, et on corrige les 3 cellules pulls de
+     `cellules.json` avant toute vérification.
+   - **Si le libellé est ambigu** (plusieurs candidats, par exemple « Pulls et sweats » et
+     « Sweats et pulls ») : on t'envoie le libellé trouvé et on ne lance rien.
+2. **Présence du token sans le manipuler** :
+   `curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer test" https://api.apify.com/v2/users/me`
+   - `200` → le proxy injecte le token. Le CLI utilisera ce même test au lieu de lire
+     `process.env.APIFY_TOKEN`.
+   - `401` → pas de token : on s'arrête, tu reconfigures.
+   - Si la variable est dans `process.env`, seul `token.slice(0, 12) + '...'` est affiché.
+3. **Alias de marques** : les alias validés de la section 7 sont chargés, et le test de
+   non-régression passe.
+4. **Code minimal**, puis tests en mock. Aucun appel facturé avant que ces tests passent.
+   - Colonne `origine` avec sa contrainte (section 6).
+   - Campagne mensuelle (section 3).
+   - Table des alias de marques (section 7).
+   - Commande `seed:verify-volume` (section 2 bis).
+
 ## 1. Acteur Apify — à remplir après le comparatif
 
 | Acteur | Schéma d'entrée | Tarif réel / 1 000 résultats | Champ sold natif | Dernier run | Testé sur 1 URL |
@@ -77,14 +99,42 @@ interprétable. La taille n'a pas de sens ici, donc les stats se font au niveau 
   ignorés) : « NewBalance » et « NB » ne correspondraient PAS. Il faudra une table d'alias de
   marques, à valider avec toi.
 
-**Précision attendue à J+28** : 20 annonces actives × 15 cellules = 300 annonces suivies. Avec
-un taux de vente de 5 à 10 % par mois, on peut espérer environ 21 ventes au total, soit environ
-1,4 par cellule. Le niveau (catégorie, marque, taille) restera donc `insufficient_data` presque
-partout. Les estimations viendront du niveau (catégorie, marque) pour les cellules à fort
-volume, et du niveau (catégorie) pour les autres, affichées avec `source: 'fallback'` et
-`confidence: 'low'`. **Le seed de 4 semaines valide le pipeline, il ne produit pas
-d'estimations précises.** Un niveau (catégorie, marque, taille) exploitable est visé vers
-**S+12** : c'est la date de disponibilité commerciale réaliste.
+**Précision attendue à J+28** : 20 annonces actives × 15 cellules = 300 annonces suivies.
+
+- **Ventes attendues** : avec un taux de vente de 5 à 10 % par mois, environ 21 ventes au total,
+  soit environ 1,4 par cellule sur la fenêtre de 30 jours.
+- **Niveaux (catégorie, marque, taille) et (catégorie, marque)** : ils resteront presque
+  partout sous le minimum de 5 ventes, donc en `insufficient_data`.
+- **Niveau (catégorie)** : il regroupe les 5 marques, soit environ 7 ventes, et devrait être le
+  seul à franchir le seuil.
+- **Affichage** : l'estimation montrera son `niveau` (`categorie`). La confiance sera `low` tant
+  que la vitesse de vente est inconnue.
+
+**Le seed de 4 semaines valide le pipeline, il ne produit pas d'estimations précises.** La date
+de maturité dépend de la taille du parc par cellule, pas de la durée du crawl (section 3).
+
+## 2 bis. Plan de vérification du volume (`seed:verify-volume`)
+
+- **Budget dédié** : `SEED_VERIFY_BUDGET_CENTS_MAX=900` (9 €), indépendant du budget du seed.
+  Il est compté dans une campagne séparée (`verify-YYYY-MM`) pour qu'on sache ce qui a coûté quoi.
+- **`--dry-run` par défaut** : la commande affiche les cellules, les URL de catalogue et le coût
+  maximal estimé, sans appeler Apify. `--execute` est obligatoire pour dépenser.
+- **Mesure**, par ordre de préférence :
+  1. comptage seul si l'acteur le permet ;
+  2. sinon `maxItems: 250`, où le plafond atteint signifie plus de 250 annonces ;
+  3. en repli, `maxItems: 50`.
+- **Étape 1 — 3 cellules pilotes** : Baskets|Nike, Pulls|Sézane, Casques|Apple, pour environ 2 €.
+- **Étape 2 — les 12 autres**, seulement si les 3 pilotes passent.
+- **Remplacements** (Veja → Puma ou Converse, AMI Paris → Lacoste ou Tommy Hilfiger) : uniquement
+  après la mesure des 12, jamais avant d'avoir mesuré le volume réel.
+
+**Critères d'arrêt** : on s'arrête et on te consulte dans trois cas.
+
+| Critère                                                               | Effet                                                                   |
+| --------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| Une cellule pilote sous 200 annonces actives                          | Les 12 autres ne sont pas lancées ; on reconsidère la catégorie entière |
+| Budget de vérification de 9 € atteint                                 | Arrêt dur, message explicite                                            |
+| Slug ou libellé de catalogue inattendu (ou 0 résultat sur une pilote) | Arrêt, libellé envoyé pour arbitrage                                    |
 
 ## 3. Budget : 60 € TTC maximum, arrêt dur dans le code à 48 €
 
@@ -132,6 +182,64 @@ Ces chiffres seront recalculés avec le tarif réel après le comparatif.
 **Réapprovisionnement** : le budget est piloté par une variable `SEED_BUDGET_CENTS_MAX`, à
 ajuster chaque mois. Le mécanisme exact reste à valider (voir les questions en fin de message).
 
+### Campagne mensuelle et réapprovisionnement
+
+- **Campagne** : nommée automatiquement `seed-YYYY-MM` (exemple : `seed-2026-11`), selon le
+  mois civil en heure de Paris. Le plafond est `SEED_BUDGET_CENTS_MAX`, à 4 800 par défaut,
+  défini en variable GitHub.
+- **Reprise** : si la campagne du mois existe, le compteur continue. Un nouveau mois ouvre une
+  nouvelle campagne avec le compteur à zéro.
+- **Garde-fou** : si le budget est épuisé avant la fin du mois, le job échoue (code 3) avec un
+  message explicite, par exemple « Budget seed épuisé le 15/11, prochain run le 01/12 ».
+  - Les runs suivants du même mois échouent de même, avec le même message, sans aucun appel.
+  - Le crawl n'est donc jamais arrêté en silence.
+
+### Budget prévisionnel S+4 à S+12 (à confirmer avec le tarif réel)
+
+Notation : T = tarif de l'acteur en € pour 1 000 résultats.
+
+| Scénario                              | Annonces suivies | Résultats par mois | T = 2,6 € | T = 3,57 € |
+| ------------------------------------- | ---------------- | ------------------ | --------- | ---------- |
+| Premier cycle : 15 cellules × 20      | 300              | ~9 100             | ~24 €     | ~33 €      |
+| Ta proposition S+4 : 30 cellules × 20 | 600              | ~18 200            | ~47 €     | ~65 €      |
+
+Avec un plafond de **80 €/mois**, l'arrêt dur à 80 % tombe à 64 €. Il couvre 30 cellules à
+2,6 €, mais il serait atteint en fin de mois si T vaut 3,57 €.
+
+**⚠️ Le plan S+12 ne tient pas avec 20 annonces actives par cellule** (voir ci-dessous).
+
+#### Pourquoi la maturité ne vient pas avec le temps
+
+La médiane est calculée sur une **fenêtre glissante de 30 jours** (décision Q5). Les ventes ne
+**s'accumulent donc pas** de mois en mois : à tout instant, une cellule ne compte que les
+ventes des 30 derniers jours.
+
+- **Ventes par mois et par cellule** : avec 20 annonces actives et ton taux de vente de 5 à 10 %
+  par mois, on obtient environ **1,4 vente**. C'est le cas à S+4 comme à S+12.
+- **Pour franchir le minimum de 5 ventes en 30 jours au niveau (catégorie, marque)**, il faut
+  environ 5 / 0,07 ≈ **70 annonces actives par cellule**.
+- **Au niveau (catégorie, marque, taille)**, il faut ce volume pour chaque taille. Avec 5 à 10
+  tailles courantes, cela représente **350 à 700 annonces actives par cellule**.
+
+| Cible                              | Actives par cellule | Pour 15 cellules | Résultats par mois | T = 2,6 €        |
+| ---------------------------------- | ------------------- | ---------------- | ------------------ | ---------------- |
+| (catégorie, marque) mature         | ~70                 | ~1 050           | ~32 000            | ~83 €/mois       |
+| (catégorie, marque, taille) mature | 350 à 700           | 5 250 à 10 500   | 160 000 à 315 000  | 410 à 820 €/mois |
+
+**Options à trancher**, après le pilote J+14 qui mesurera le vrai taux de vente :
+
+- **(a) Agrandir le parc** sur les cellules prioritaires, pour viser la maturité au niveau
+  (catégorie, marque) à environ 83 €/mois pour 15 cellules.
+- **(b) Fenêtre plus longue** (60 ou 90 jours) en repli, quand la fenêtre de 30 jours est
+  insuffisante. Cela modifie la règle Q5 validée et les prix seraient moins frais, mais les
+  ventes sont toutes réelles.
+- **(c) Accepter le niveau (catégorie) ou (catégorie, marque)** comme niveau de production pour
+  la plupart des cellules. Le niveau (catégorie, marque, taille) serait réservé à quelques
+  cellules à très fort volume.
+
+Ma recommandation est **(a) ciblé + (c)** : agrandir le parc seulement sur les 3 à 5 cellules
+les plus rentables. On ne touche pas à la fenêtre de 30 jours sans ta décision.
+
 ## 4. Exécution
 
 Le crawl tourne sur **GitHub Actions** (`.github/workflows/seed.yml`), jamais depuis une session de dev.
@@ -164,8 +272,8 @@ Le cron ne s'exécute que depuis la branche par défaut : rien ne tourne avant l
 6. **J+14** : checkpoint durci.
    - Aucune cellule avec au moins 2 ventes observées → on arrête et on reconsidère le périmètre.
    - Au moins 5 cellules avec 2 ventes ou plus → on continue.
-7. **Au-delà de J+28** : le crawl continue en Phase 3, sans interruption, pour faire mûrir les
-   données jusqu'à S+12.
+7. **Au-delà de J+28** : le crawl continue en Phase 3, sans interruption. La maturité dépend de
+   la taille du parc par cellule, pas de la durée (fenêtre de 30 jours, voir section 3).
 
 ## 6. Stockage (migration déjà livrée, commit séparé)
 
@@ -183,3 +291,47 @@ Deux écarts par rapport à ta spécification de `TrackedListing` :
   marque pouvait être absente. Le seed, lui, n'écrit que des annonces avec marque, puisque le
   filtre de cellule l'exige. Dis-moi si tu veux un `NOT NULL` strict ; il demanderait une migration
   de nettoyage.
+
+**Colonne `origine` (validée, à coder en début de session)** :
+
+- `TrackedListing.origine` : `SEED` ou `MIGRATION`, valeur par défaut `MIGRATION` pour que la
+  migration existante reste compatible ;
+- `INDEX (origine)` ;
+- `CHECK (origine <> 'SEED' OR marque IS NOT NULL)`.
+
+Le seed écrit toujours `origine = 'SEED'`. La migration `NOT NULL` stricte sur `marque` est
+reportée à la Phase 3.
+
+## 7. Alias de marques (table `BrandAlias`)
+
+- **Champs** : `alias` (texte tel qu'écrit dans l'annonce), `marque` (nom canonique),
+  `valide` (faux par défaut), `dateValidation`.
+- **Règle** : le seed refuse de crawler une cellule dont la marque a au moins un alias non
+  validé, comme pour `cellules.json`.
+- **Comparaison existante** : elle ignore déjà la casse et les espaces en début et fin de
+  texte. Les variantes de pure casse (`NIKE`, `nike`) sont donc couvertes sans alias ; elles
+  restent dans la table pour la traçabilité. Les accents, eux, ne sont pas ignorés : `Sezane`
+  a besoin de son alias.
+
+| Marque canonique | Alias validés                                     | Non rattachés (ambigus ou sous-marques)      |
+| ---------------- | ------------------------------------------------- | -------------------------------------------- |
+| New Balance      | NewBalance, New-Balance, New balance, new balance | **NB**                                       |
+| Nike             | NIKE, nike                                        | —                                            |
+| Adidas           | ADIDAS, adidas                                    | **Adidas Originals** (sous-marque distincte) |
+| Sézane           | Sezane, SEZANE, Sézane Paris                      | —                                            |
+| AMI Paris        | Ami Paris, ami paris                              | **AMI** seul                                 |
+| Sandro           | SANDRO, sandro paris                              | —                                            |
+| Maje             | MAJE, maje paris                                  | —                                            |
+| Ralph Lauren     | RALPH LAUREN, Polo Ralph Lauren                   | **Polo** seul                                |
+| Apple            | apple, APPLE                                      | —                                            |
+| Sony             | SONY, sony                                        | —                                            |
+| Bose             | BOSE, bose                                        | —                                            |
+| JBL              | JBL, jbl                                          | —                                            |
+| Samsung          | SAMSUNG, samsung                                  | —                                            |
+
+**Test de non-régression de référence** :
+
+- chaque alias validé ci-dessus est rattaché à sa marque canonique ;
+- `NB`, `AMI`, `Polo` et `Adidas Originals` ne sont rattachés à **aucune** cellule.
+
+Toute nouvelle validation d'alias passe par ce test.
