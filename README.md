@@ -74,6 +74,20 @@ infra/              docker-compose, migrations SQL
   dégrade en appel direct, sans faire échouer l'analyse.
 - Driver `custom` non implémenté : voir `packages/scraper/src/drivers/custom.ts` (CGU, CNIL, DAC7).
 
+## Crawl de seed (Phase 2b)
+
+Le seed tourne **uniquement depuis GitHub Actions** (`.github/workflows/seed.yml`, quotidien),
+jamais depuis une session de dev. Plan, budget et cellules : `docs/phase-2b-seed.md`.
+
+```bash
+pnpm seed:run --budget-max 4800 --cout-par-1000 <centimes-EUR> [--cellule "Baskets|Nike"]
+```
+
+- Arrêt dur budgétaire codé : aucun appel ne peut faire dépasser `--budget-max` (code de sortie 3).
+- Le CLI refuse toute cellule `valide: false` dans `packages/scraper/seed/cellules.json`.
+- Variables requises (échec immédiat sinon) : `APIFY_TOKEN`, `APIFY_ACTOR_ID`, `DATABASE_URL`.
+- Rollbacks de migration : `infra/rollbacks/*.down.sql` (à exécuter avec `psql --single-transaction`).
+
 ## TODO avant ouverture commerciale
 
 - [ ] **Vérifier la grille Vinted Pro** (commission forfaitaire 5 €/vente retenue, sources

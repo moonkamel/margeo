@@ -1,0 +1,73 @@
+name: Seed quotidien
+
+# Crawl de seed Phase 2b. Tourne depuis la CI, jamais depuis une session de dev.
+# Le cron GitHub est en UTC : 5 h UTC = 6 h à Paris en hiver (7 h en été).
+on:
+  schedule:
+    - cron: '0 5 * * *'
+  workflow_dispatch:
+    inputs:
+      cellule:
+        description: 'Limiter à une cellule « Catégorie|Marque » (lancement J+1). Vide = toutes les cellules validées.'
+        required: false
+        default: ''
+
+# Jamais deux crawls en parallèle : le budget est compté sur la campagne.
+concurrency:
+  group: seed
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+      DATABASE_URL: ${{ secrets.SEED_DATABASE_URL }}
+      APIFY_ACTOR_ID: ${{ vars.APIFY_ACTOR_ID }}
+      SEED_COUT_PAR_1000_CENTS: ${{ vars.SEED_COUT_PAR_1000_CENTS }}
+      SEED_CAMPAIGN: ${{ vars.SEED_CAMPAIGN }}
+    steps:
+      # Échec immédiat et explicite si la configuration est absente : aucun install, aucun appel.
+      - name: Vérifier la configuration
+        run: |
+          missing=0
+          if [ -z "$APIFY_TOKEN" ]; then echo "::error title=Seed non configuré::APIFY_TOKEN manquant, configurer le secret"; missing=1; fi
+          if [ -z "$DATABASE_URL" ]; then echo "::error title=Seed non configuré::SEED_DATABASE_URL manquant, configurer le secret"; missing=1; fi
+          if [ -z "$APIFY_ACTOR_ID" ]; then echo "::error title=Seed non configuré::APIFY_ACTOR_ID manquant, configurer la variable"; missing=1; fi
+          if [ -z "$SEED_COUT_PAR_1000_CENTS" ]; then echo "::error title=Seed non configuré::SEED_COUT_PAR_1000_CENTS manquant (tarif réel de l'acteur, en centimes d'euro)"; missing=1; fi
+          exit $missing
+
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:generate
+
+      - name: Appliquer les migrations
+        run: pnpm db:migrate
+
+      # Code de sortie 3 = arrêt dur budgétaire (48 €) : le job échoue, GitHub notifie.
+      - name: Lancer le seed (arrêt dur à 48 €)
+        run: |
+          mkdir -p logs
+          pnpm seed:run --budget-max 4800 --budget-suivi 3000 --budget-decouverte 1800 \
+            --log-file "$GITHUB_WORKSPACE/logs/seed-$(date -u +%Y%m%dT%H%M%SZ).jsonl" \
+            ${CELLULE:+--cellule "$CELLULE"}
+        env:
+          CELLULE: ${{ inputs.cellule }}
+
+      - name: Archiver les logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: seed-logs-${{ github.run_id }}
+          path: logs/
+          if-no-files-found: ignore
+          retention-days: 90

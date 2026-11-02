@@ -253,3 +253,35 @@ model Subscription {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
+enum SeedRunStatut {
+  RUNNING
+  COMPLETED
+  PARTIAL
+  BUDGET_STOPPED
+  FAILED
+}
+
+/// Une exécution quotidienne du crawler de seed. Le coût est incrémenté APRÈS CHAQUE appel
+/// à la source (pas en fin de run) : un crash en cours de route ne fait pas oublier une dépense.
+/// Coûts en millièmes de centime d'euro (1 € = 100 000) pour rester en entiers.
+model SeedRun {
+  id                       String        @id @default(uuid()) @db.Uuid
+  campagne                 String
+  statut                   SeedRunStatut @default(RUNNING)
+  budgetMaxCents           Int
+  startedAt                DateTime      @default(now()) @db.Timestamptz(3)
+  finishedAt               DateTime?     @db.Timestamptz(3)
+  coutSuiviMilliCents      Int           @default(0)
+  coutDecouverteMilliCents Int           @default(0)
+  resultatsFactures        Int           @default(0)
+  annoncesVerifiees        Int           @default(0)
+  nouvellesAnnonces        Int           @default(0)
+  ventesDetectees          Int           @default(0)
+  disparitions             Int           @default(0)
+  erreurs                  Int           @default(0)
+  /// Journal par cellule et motif d'arrêt éventuel.
+  details                  Json?
+
+  @@index([campagne, startedAt])
+}

@@ -29,6 +29,15 @@ export function isSoldPayload(raw: unknown): boolean {
   return statut === 'sold' || statut === 'vendu';
 }
 
+/**
+ * Annonce clôturée SANS vente (supprimée, masquée par son vendeur) mais encore lisible.
+ * Ce n'est ni une vente ni un signal de vitesse : on arrête simplement de la suivre.
+ */
+export function isClosedPayload(raw: unknown): boolean {
+  if (!isRecord(raw) || isSoldPayload(raw)) return false;
+  return raw['is_closed'] === true || raw['is_hidden'] === true;
+}
+
 /** Payload d'annonce supprimée ou introuvable (réponse d'erreur Vinted ou marqueur explicite). */
 export function isDeletedPayload(raw: unknown): boolean {
   if (!isRecord(raw)) return false;

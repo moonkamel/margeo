@@ -85,6 +85,9 @@ importers:
 
   packages/scraper:
     dependencies:
+      '@margeo/db':
+        specifier: workspace:*
+        version: link:../db
       '@margeo/shared':
         specifier: workspace:*
         version: link:../shared
@@ -95,9 +98,15 @@ importers:
         specifier: ^4.1.0
         version: 4.6.7
     devDependencies:
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
       msw:
         specifier: ^2.15.0
         version: 2.15.0(@types/node@22.20.5)(typescript@5.9.3)
+      pg:
+        specifier: ^8.23.1
+        version: 8.23.1
       tsx:
         specifier: ^4.23.15
         version: 4.23.15

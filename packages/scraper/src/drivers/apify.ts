@@ -13,11 +13,14 @@ import { buildCatalogSearchUrl, parseVintedItemUrl } from '../url.js';
  */
 export interface ApifyInputBuilders {
   listing: (url: string) => unknown;
+  /** Re-vérification en lot : plusieurs annonces dans un seul run (un seul coût de démarrage). */
+  listings: (urls: readonly string[]) => unknown;
   search: (searchUrl: string, maxItems: number) => unknown;
 }
 
 export const DEFAULT_INPUT_BUILDERS: ApifyInputBuilders = {
   listing: (url) => ({ startUrls: [{ url }], maxItems: 1 }),
+  listings: (urls) => ({ startUrls: urls.map((url) => ({ url })), maxItems: urls.length }),
   search: (searchUrl, maxItems) => ({ startUrls: [{ url: searchUrl }], maxItems }),
 };
 
@@ -111,8 +114,7 @@ export class ApifyDriver implements ScraperDriver {
     brand: string | null,
     size: string | null,
   ): Promise<{ listings: NormalizedListing[]; ignores: number }> {
-    const searchUrl = buildCatalogSearchUrl(category, brand, size);
-    const items = await this.runActor(this.inputs.search(searchUrl, this.maxSearchItems));
+    const items = await this.searchRaw(category, brand, size, this.maxSearchItems);
     const now = this.now();
     const listings: NormalizedListing[] = [];
     let ignores = 0;
@@ -122,6 +124,24 @@ export class ApifyDriver implements ScraperDriver {
       else ignores++;
     }
     return { listings, ignores };
+  }
+
+  /** Recherche catalogue brute, plafonnée à `maxItems` résultats (plafond de facturation). */
+  async searchRaw(
+    category: string,
+    brand: string | null,
+    size: string | null,
+    maxItems: number,
+  ): Promise<unknown[]> {
+    const searchUrl = buildCatalogSearchUrl(category, brand, size);
+    return this.runActor(this.inputs.search(searchUrl, maxItems));
+  }
+
+  /** Récupère plusieurs annonces en un seul run ; renvoie les items bruts (sans garantie d'ordre). */
+  async fetchListingsRaw(urls: readonly string[]): Promise<unknown[]> {
+    if (urls.length === 0) return [];
+    const canonical = urls.map((u) => parseVintedItemUrl(u).canonicalUrl);
+    return this.runActor(this.inputs.listings(canonical));
   }
 
   /**

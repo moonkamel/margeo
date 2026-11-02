@@ -1,0 +1,110 @@
+{
+  "_note": "Proposition Phase 2b. Aucune cellule n'est crawlable tant que valide=false (refus du CLI seed:run). Volume >= 200 annonces actives NON vérifié.",
+  "cellules": [
+    {
+      "categorie": "Baskets",
+      "marque": "Nike",
+      "taille": null,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+    },
+    {
+      "categorie": "Baskets",
+      "marque": "Adidas",
+      "taille": null,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+    },
+    {
+      "categorie": "Baskets",
+      "marque": "New Balance",
+      "taille": null,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+    },
+    {
+      "categorie": "Baskets",
+      "marque": "Asics",
+      "taille": null,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+    },
+    {
+      "categorie": "Baskets",
+      "marque": "Veja",
+      "taille": null,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » (Chaussures, sous Hommes et Femmes). Libellé exact à confirmer sur le payload réel de l'acteur."
+    },
+    {
+      "categorie": "Pulls",
+      "marque": "Sézane",
+      "taille": null,
+      "valide": false,
+      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+    },
+    {
+      "categorie": "Pulls",
+      "marque": "AMI Paris",
+      "taille": null,
+      "valide": false,
+      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+    },
+    {
+      "categorie": "Pulls",
+      "marque": "Sandro",
+      "taille": null,
+      "valide": false,
+      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+    },
+    {
+      "categorie": "Pulls",
+      "marque": "Maje",
+      "taille": null,
+      "valide": false,
+      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+    },
+    {
+      "categorie": "Pulls",
+      "marque": "Ralph Lauren",
+      "taille": null,
+      "valide": false,
+      "justification": "Libellé exact de la catégorie mode à confirmer sur le payload réel (non trouvé par recherche web)."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "marque": "Apple",
+      "taille": null,
+      "valide": false,
+      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "marque": "Sony",
+      "taille": null,
+      "valide": false,
+      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "marque": "Bose",
+      "taille": null,
+      "valide": false,
+      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "marque": "JBL",
+      "taille": null,
+      "valide": false,
+      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "marque": "Samsung",
+      "taille": null,
+      "valide": false,
+      "justification": "Fil d'Ariane observé sur des annonces : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs."
+    }
+  ]
+}
