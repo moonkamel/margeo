@@ -592,3 +592,29 @@ chaque jour ; la projection simule l'épuisement CUMULÉ de l'enveloppe découve
 | Vérification, 3 pilotes | 0,53 € par cellule, 1,59 € | —                 | —                | 11 € (vérification)  |
 | Seed, 3 pilotes (210)   | 0,65 € + 0,19 €            | non               | 23,52 €          | non atteint          |
 | Seed, 15 cellules (600) | 1,74 € + 0,93 €            | vers le jour 13   | 60,72 €          | non atteint (≈ j 40) |
+
+**Pire cas ≠ cas attendu.** Le dry-run suppose une découverte pleine chaque jour : c'est un pire cas
+hypothétique, gardé pour la robustesse. En pratique, la découverte ne fait que compléter les parcs,
+puis remplacer les annonces vendues ou retirées. Les parcs priority (70 annonces) se remplissent en
+**environ 14 jours** à 5 découvertes par jour (et non J+4, qui valait pour l'ancienne cible de 20) ;
+secondary (30) vers J+6, tertiary (20) vers J+4. La coupure de la découverte au jour 13 n'est
+donc pas attendue en régime normal ; à vérifier sur les données réelles à J+14.
+
+**Budget Apify réel du premier cycle** : environ 66 $ (60,72 € au pire cas sur 4 semaines). Le plan
+Starter inclut 19 $ par mois : **un achat d'environ 50 $ de crédit est nécessaire avant J+1 du seed**
+(décision : achat ponctuel, réévaluation à J+14 sur le taux de vente réel ; plan Silver seulement
+si le produit décolle, réduction du périmètre plutôt que hausse du budget sinon).
+
+**Input envoyé à abotapi** (`src/drivers/abotapi-input.ts`, schémas stricts) :
+
+- recherche : `{ mode: "search", queries: [<marque>], categoryId: "<id>", maxItems, fetchDetails: true, sortBy: "newest_first" }` ;
+- re-vérification : `{ mode: "url", urls, maxItems: <nombre d'URL>, fetchDetails: true }`.
+
+Tout autre filtre est refusé plutôt qu'ignoré ; un acteur sans mapping validé fait échouer
+`--execute` (code 2) avant toute connexion.
+
+**Workflow `verify-volume.yml`** (lancement manuel) : entrées `cellules` (`pilotes` | `reste`) et
+`execute` (décoché par défaut = dry-run, sans secret). Groupe de concurrence partagé avec le seed ;
+logs archivés 90 jours ; variables requises en exécution : `APIFY_ACTOR_ID`
+(`abotapi/vinted-fr-scraper`), `SEED_COUT_PAR_1000_CENTS` (240), `SEED_COUT_PAR_RUN_CENTS` (5),
+secrets `APIFY_TOKEN` et `SEED_DATABASE_URL`.
