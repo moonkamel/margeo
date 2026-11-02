@@ -99,6 +99,23 @@ export function cellulesExecutables(
   }));
 }
 
+/**
+ * Sélection du run --execute : seules les cellules VALIDÉES sont crawlées, les autres sont
+ * ignorées (et listées). Une cellule validée mais non crawlable (catalogue inconnu, alias non
+ * validé) fait échouer le chargement : jamais de crawl partiel silencieux d'une cellule validée.
+ */
+export function cellulesValidees(
+  configs: readonly CelluleConfig[],
+  resolver?: BrandResolver,
+): { cellules: Cellule[]; ignorees: string[] } {
+  const validees = configs.filter((c) => c.valide);
+  if (validees.length === 0) throw new SeedConfigError('Aucune cellule validée (valide: true)');
+  return {
+    cellules: cellulesExecutables(validees, resolver),
+    ignorees: configs.filter((c) => !c.valide).map(nomCellule),
+  };
+}
+
 /** Lecture + exigence de crawlabilité (mode --execute). */
 export function loadCellules(path: string, filtre?: string, resolver?: BrandResolver): Cellule[] {
   return cellulesExecutables(readCellules(path, filtre), resolver);

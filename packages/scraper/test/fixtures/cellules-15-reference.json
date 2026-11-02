@@ -1,0 +1,155 @@
+{
+  "_note": "Phase 2b. Aucune cellule n'est crawlable tant que valide=false. catalogId = source de vérité (le libellé est cosmétique) ; null = identifiant non relevé, la cellule ne peut pas être vérifiée ni crawlée. cibleActives doit correspondre au tier (priority 70, secondary 30, tertiary 20).",
+  "cellules": [
+    {
+      "categorie": "Baskets (H)",
+      "catalogId": 1242,
+      "marque": "Nike",
+      "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
+      "valide": false,
+      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets)."
+    },
+    {
+      "categorie": "Baskets (H)",
+      "catalogId": 1242,
+      "marque": "Adidas",
+      "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
+      "valide": false,
+      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets)."
+    },
+    {
+      "categorie": "Baskets",
+      "catalogId": null,
+      "marque": "New Balance",
+      "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
+    },
+    {
+      "categorie": "Baskets",
+      "catalogId": null,
+      "marque": "Asics",
+      "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
+    },
+    {
+      "categorie": "Baskets",
+      "catalogId": null,
+      "marque": "Veja",
+      "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
+      "valide": false,
+      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
+    },
+    {
+      "categorie": "Sweats et sweats à capuche (F)",
+      "catalogId": 13,
+      "marque": "Sézane",
+      "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
+      "valide": false,
+      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId."
+    },
+    {
+      "categorie": "Sweats et pulls (H)",
+      "catalogId": 79,
+      "marque": "AMI Paris",
+      "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
+      "valide": false,
+      "justification": "Catalogue 79, relevé le 2026-11-04 sur vinted.fr (Hommes > Vêtements > Sweats et pulls, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Remplacement prévu si < 200 actives : Lacoste ou Tommy Hilfiger."
+    },
+    {
+      "categorie": "Sweats et sweats à capuche (F)",
+      "catalogId": 13,
+      "marque": "Sandro",
+      "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": false,
+      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Sandro a aussi une ligne Homme : si sous-performant à J+14, ajouter Sandro|79 en cellule #16 plutôt que de basculer."
+    },
+    {
+      "categorie": "Sweats et sweats à capuche (F)",
+      "catalogId": 13,
+      "marque": "Maje",
+      "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": false,
+      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId."
+    },
+    {
+      "categorie": "Sweats et pulls (H)",
+      "catalogId": 79,
+      "marque": "Ralph Lauren",
+      "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
+      "valide": false,
+      "justification": "Catalogue 79, relevé le 2026-11-04 sur vinted.fr (Hommes > Vêtements > Sweats et pulls, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Version large pour le pilote ; « Polo Ralph Lauren » et « Lauren Ralph Lauren » ont des gammes de prix distinctes : à scinder à J+14 si la médiane est trop dispersée."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
+      "marque": "Apple",
+      "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
+      "valide": false,
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
+      "marque": "Sony",
+      "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
+      "valide": false,
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
+      "marque": "Bose",
+      "taille": null,
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": false,
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
+      "marque": "JBL",
+      "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
+      "valide": false,
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "catalogId": null,
+      "marque": "Samsung",
+      "taille": null,
+      "tier": "tertiary",
+      "cibleActives": 20,
+      "valide": false,
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
+    }
+  ]
+}

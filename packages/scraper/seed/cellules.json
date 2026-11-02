@@ -1,25 +1,25 @@
 {
-  "_note": "Phase 2b. Aucune cellule n'est crawlable tant que valide=false. catalogId = source de vérité (le libellé est cosmétique) ; null = identifiant non relevé, la cellule ne peut pas être vérifiée ni crawlée. cibleActives doit correspondre au tier (priority 70, secondary 30, tertiary 20).",
+  "_note": "Phase 2b. Aucune cellule n'est crawlable tant que valide=false. catalogId = source de vérité (le libellé est cosmétique) ; null = identifiant non relevé, la cellule ne peut pas être vérifiée ni crawlée. cibleActives doit correspondre au tier (priority 70, secondary 30, tertiary 20). Test de pipeline du 2026-11-04 : seules Nike, Adidas (1242) et Sézane (13) sont validées, en secondary (30), pour 15 jours ; le tiering de la section 8.1 reprend au seed complet.",
   "cellules": [
     {
       "categorie": "Baskets (H)",
       "catalogId": 1242,
       "marque": "Nike",
       "taille": null,
-      "tier": "priority",
-      "cibleActives": 70,
-      "valide": false,
-      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets)."
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": true,
+      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets). — 2026-11-04 : volume vérifié (≥ 200 sur 250 résultats) ; passée en secondary (cible 30) et validée pour le test de pipeline de 15 jours (décision du 2026-11-04 : une cible de 70 à 5 découvertes par jour ne serait atteinte qu'à J+14)."
     },
     {
       "categorie": "Baskets (H)",
       "catalogId": 1242,
       "marque": "Adidas",
       "taille": null,
-      "tier": "priority",
-      "cibleActives": 70,
-      "valide": false,
-      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets)."
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": true,
+      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets). — 2026-11-04 : volume vérifié (≥ 200 sur 250 résultats) ; passée en secondary (cible 30) et validée pour le test de pipeline de 15 jours (décision du 2026-11-04 : une cible de 70 à 5 découvertes par jour ne serait atteinte qu'à J+14)."
     },
     {
       "categorie": "Baskets",
@@ -56,10 +56,10 @@
       "catalogId": 13,
       "marque": "Sézane",
       "taille": null,
-      "tier": "priority",
-      "cibleActives": 70,
-      "valide": false,
-      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId."
+      "tier": "secondary",
+      "cibleActives": 30,
+      "valide": true,
+      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. — 2026-11-04 : volume vérifié (≥ 200 sur 250 résultats) ; passée en secondary (cible 30) et validée pour le test de pipeline de 15 jours (décision du 2026-11-04 : une cible de 70 à 5 découvertes par jour ne serait atteinte qu'à J+14)."
     },
     {
       "categorie": "Sweats et pulls (H)",

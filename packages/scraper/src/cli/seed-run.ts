@@ -20,7 +20,7 @@ import {
   BrandResolver,
   budgetDepuisPlafond,
   campagneDuMois,
-  cellulesExecutables,
+  cellulesValidees,
   formatMilli,
   formatSeedPlan,
   planSeedRun,
@@ -172,7 +172,13 @@ async function main(): Promise<number> {
         configs.map((c) => c.marque),
         await repo.loadBrandAliases(),
       );
-      cellules = cellulesExecutables(configs, resolver);
+      const selection = cellulesValidees(configs, resolver);
+      cellules = selection.cellules;
+      if (selection.ignorees.length > 0)
+        log('seed.cellules_ignorees', {
+          motif: 'valide: false',
+          cellules: selection.ignorees,
+        });
     } catch (err) {
       return configError(err);
     }

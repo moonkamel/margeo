@@ -51,6 +51,8 @@ export interface SeedPlanTarif {
 export interface SeedPlan {
   cellules: SeedPlanCellule[];
   crawlables: number;
+  /** Aucune cellule crawlable : volumes projetés sur toutes les cellules, à titre indicatif. */
+  projectionHypothetique: boolean;
   suiviJour: number;
   lotsJour: number;
   /** Runs par jour au maximum (lots de suivi + une découverte par cellule). */
@@ -74,14 +76,18 @@ export function planSeedRun(
     decouverteMaxJour: Math.min(opts.maxDecouverteParCellule, c.cibleActives),
     refus: motifsRefus(c, resolver),
   }));
-  const suiviJour = cellules.reduce((a, c) => a + c.cibleActives, 0);
-  const decouverteJourMax = cellules.reduce((a, c) => a + c.decouverteMaxJour, 0);
+  // Périmètre projeté : les cellules que --execute crawlerait réellement ; si aucune ne l'est
+  // encore, projection hypothétique sur toutes les cellules du fichier.
+  const crawlables = cellules.filter((c) => c.refus.length === 0);
+  const perimetre = crawlables.length > 0 ? crawlables : cellules;
+  const suiviJour = perimetre.reduce((a, c) => a + c.cibleActives, 0);
+  const decouverteJourMax = perimetre.reduce((a, c) => a + c.decouverteMaxJour, 0);
   const lotsJour = Math.ceil(suiviJour / opts.batchSize);
   const tarifs = opts.tarifs.map((t) => {
     const budget = budgetDepuisPlafond(opts.plafondCents, t, opts.coutParRunMilli);
     // Frais fixes : un run par lot de re-vérification, un run de découverte par cellule.
     const suiviJourMilli = suiviJour * t + lotsJour * opts.coutParRunMilli;
-    const decouverteJourMaxMilli = decouverteJourMax * t + cellules.length * opts.coutParRunMilli;
+    const decouverteJourMaxMilli = decouverteJourMax * t + perimetre.length * opts.coutParRunMilli;
     // Simulation jour par jour au rythme maximal : la découverte s'arrête quand SON enveloppe
     // CUMULÉE est épuisée (elle est coupée en premier) ; le suivi continue jusqu'à l'arrêt dur.
     const arret = budget.hardStopCents * MILLI_PAR_CENTIME;
@@ -115,10 +121,11 @@ export function planSeedRun(
   });
   return {
     cellules,
-    crawlables: cellules.filter((c) => c.refus.length === 0).length,
+    crawlables: crawlables.length,
+    projectionHypothetique: crawlables.length === 0,
     suiviJour,
     lotsJour,
-    runsJourMax: lotsJour + cellules.length,
+    runsJourMax: lotsJour + perimetre.length,
     coutParRunMilli: opts.coutParRunMilli,
     decouverteJourMax,
     tarifs,
@@ -141,6 +148,9 @@ export function formatSeedPlan(plan: SeedPlan, plafondCents: number, campagne: s
     );
   }
   l.push('');
+  l.push(
+    `Périmètre projeté : ${plan.projectionHypothetique ? `toutes les cellules (${plan.cellules.length}), hypothétique — aucune n'est crawlable` : `${plan.crawlables} cellule(s) crawlable(s) en --execute`}`,
+  );
   l.push(
     `Volume maximal par jour (parcs complets) : ${plan.suiviJour} re-vérifications en ${plan.lotsJour} lots, + ${plan.decouverteJourMax} découvertes au plus`,
   );

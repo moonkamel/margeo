@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import {
   BrandResolver,
   cellulesExecutables,
+  cellulesValidees,
   loadCellules,
   readCellules,
   requireSeedEnv,
@@ -134,14 +135,30 @@ describe('cellulesExecutables — mode --execute', () => {
   });
 });
 
+describe('cellulesValidees — sélection du run --execute', () => {
+  it('cellules non validées ignorées et listées ; validées crawlées', () => {
+    const r = cellulesValidees([c(), c({ marque: 'Ralph Lauren', valide: false })] as never);
+    expect(r.cellules.map((x) => x.marque)).toEqual(['AMI Paris']);
+    expect(r.ignorees).toEqual(['Sweats et pulls (H)|Ralph Lauren']);
+  });
+
+  it('cellule VALIDÉE mais sans catalogue → échec (jamais ignorée en silence)', () => {
+    expect(() => cellulesValidees([c(), c({ marque: 'X', catalogId: null })] as never)).toThrow(
+      /X : identifiant de catalogue inconnu/,
+    );
+  });
+
+  it('aucune cellule validée → échec', () => {
+    expect(() => cellulesValidees([c({ valide: false })] as never)).toThrow(/Aucune cellule/);
+  });
+});
+
 describe('seed/cellules.json', () => {
   const path = new URL('../../seed/cellules.json', import.meta.url).pathname;
   const cellules = readCellules(path);
 
-  it('15 cellules, 3 catégories × 5 marques, tier et cibleActives cohérents', () => {
+  it('15 cellules ; tier et cibleActives cohérents (vérifié par le schéma)', () => {
     expect(cellules).toHaveLength(15);
-    const parTier = (t: string) => cellules.filter((x) => x.tier === t).length;
-    expect([parTier('priority'), parTier('secondary'), parTier('tertiary')]).toEqual([5, 5, 5]);
   });
 
   it('catalogues relevés le 2026-11-04 : pulls 13 (F) / 79 (H), baskets Nike et Adidas 1242 (H)', () => {
@@ -161,8 +178,20 @@ describe('seed/cellules.json', () => {
     });
   });
 
-  it('aucune cellule crawlable tant que le go n’est pas donné', () => {
-    expect(cellules.every((x) => !x.valide)).toBe(true);
+  it('test de pipeline : SEULES Nike, Adidas et Sézane sont validées, en secondary (30)', () => {
+    const validees = cellules.filter((x) => x.valide);
+    expect(validees.map((x) => [x.marque, x.catalogId, x.tier, x.cibleActives])).toEqual([
+      ['Nike', 1242, 'secondary', 30],
+      ['Adidas', 1242, 'secondary', 30],
+      ['Sézane', 13, 'secondary', 30],
+    ]);
+    // Le fichier complet n'est pas crawlable (12 cellules refusées) : il faut filtrer.
     expect(() => loadCellules(path)).toThrow(/non crawlables/);
+    expect(cellulesExecutables(validees).map((x) => x.marque)).toEqual([
+      'Nike',
+      'Adidas',
+      'Sézane',
+    ]);
+    expect(loadCellules(path, '13|Sézane')).toHaveLength(1);
   });
 });

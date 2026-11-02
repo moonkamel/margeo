@@ -94,7 +94,7 @@ describe('campagne mensuelle (heure de Paris)', () => {
 });
 
 describe('planSeedRun — dry-run (aucun appel, aucune base)', () => {
-  const path = new URL('../../seed/cellules.json', import.meta.url).pathname;
+  const path = new URL('../fixtures/cellules-15-reference.json', import.meta.url).pathname;
 
   it('cellules réelles : volumes par tier et coût maximal aux deux tarifs', () => {
     const plan = planSeedRun(readCellules(path), {
@@ -466,7 +466,7 @@ describe('frais fixes par run — comptés dans le budget (décision du 2026-11-
   });
 
   it('dry-run : frais fixes affichés et inclus dans le coût journalier', () => {
-    const path = new URL('../../seed/cellules.json', import.meta.url).pathname;
+    const path = new URL('../fixtures/cellules-15-reference.json', import.meta.url).pathname;
     const plan = planSeedRun(readCellules(path), {
       plafondCents: 10_000,
       tarifs: [260],
@@ -480,5 +480,29 @@ describe('frais fixes par run — comptés dans le budget (décision du 2026-11-
     expect(formatSeedPlan(plan, 10_000, 'seed-2026-11')).toMatch(
       /Runs par jour : 27 au plus × 0,05 € de frais fixes = 1,35 € par jour/,
     );
+  });
+});
+
+describe('dry-run : périmètre = cellules réellement crawlées', () => {
+  it('test de pipeline (3 cellules secondary validées) : volumes sur ces 3 seules', () => {
+    const reel = new URL('../../seed/cellules.json', import.meta.url).pathname;
+    const plan = planSeedRun(readCellules(reel), {
+      plafondCents: 1000,
+      tarifs: [240],
+      coutParRunMilli: 5000,
+      batchSize: 100,
+      maxDecouverteParCellule: 5,
+    });
+    expect(plan.projectionHypothetique).toBe(false);
+    expect([plan.crawlables, plan.suiviJour, plan.lotsJour, plan.runsJourMax]).toEqual([
+      3, 90, 1, 4,
+    ]);
+    const [t] = plan.tarifs;
+    // Suivi : 90 × 0,24 c + 5 c = 26,6 c/j ; découverte : 15 × 0,24 c + 3 × 5 c = 18,6 c/j.
+    expect([t?.suiviJourMilli, t?.decouverteJourMaxMilli]).toEqual([26_600, 18_600]);
+    // Plafond 10 € → arrêt dur 8 €, découverte 1,20 € : épuisée le 7e jour (6 × 18,6 = 1,116 €).
+    expect(t?.jourCoupureDecouverte).toBe(7);
+    // Puis suivi seul : 1,20 € + 26 × 0,266 € ≥ 8 € → arrêt dur au jour 26, après les 15 j du test.
+    expect(t?.jourArretDur).toBe(26);
   });
 });
