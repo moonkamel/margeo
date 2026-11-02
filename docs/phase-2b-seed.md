@@ -431,3 +431,37 @@ La liste des 15 cellules n'est pas figée : elle est révisée à J+14 sur ces d
 2. Test de présence du token avec `GET /v2/users/me`.
 3. **Arrêt immédiat avec compte rendu** si le slug est ambigu ou le token absent.
 4. Sinon, déroulé de la section 0 dans l'ordre.
+
+### 8.9 Réponses du 2026-11-03 (fin de session) — à appliquer en début de nouvelle session
+
+1. **Premier cycle** : plafond de **100 € TTC** dès le départ (il remplace 60 € et 48 €), arrêt
+   dur à **80 €**, soit 80 % du plafond.
+2. **Enveloppes** : proportions 85 % pour le suivi et 15 % pour la découverte, la découverte
+   étant coupée en premier.
+   - ⚠️ **À confirmer** : 85 € + 15 € = 100 € dépasse l'arrêt dur de 80 €, et `BudgetLedger`
+     refuse une configuration où la somme des enveloppes dépasse l'arrêt dur.
+   - Proposition : appliquer les proportions aux 80 € dépensables, soit **68 € de suivi et
+     12 € de découverte**.
+3. **Sens de `--budget-max`** : il devient le **plafond** (10 000 centimes), et l'arrêt dur est
+   calculé à 80 % de ce plafond. Aujourd'hui, `--budget-max` fixe directement l'arrêt dur : c'est
+   à modifier dans le code.
+4. **Alerte d'épuisement à 80 € consommés** : le workflow échoue avec le message « Budget seed à
+   80 % — prochain run le 01/XX ou ajuster `SEED_BUDGET_CENTS_MAX` ». Les 20 € restants sont une
+   marge contre les écarts de facturation Apify ; ils ne sont pas dépensés.
+5. **`seed:run`** :
+   - `--dry-run` par défaut : il affiche « dry-run, aucune dépense » et sort en succès ;
+   - le workflow passe `--execute` et `--budget-max 10000`.
+6. **`cellules.json`** : chaque cellule porte trois champs obligatoires.
+   - `tier` : `priority`, `secondary` ou `tertiary` ;
+   - `cibleActives` : 70, 30 ou 20, et doit correspondre au tier ;
+   - `valide` : reste à `false` tant que le volume n'est pas vérifié.
+
+   Un test refuse un fichier où `cibleActives` ne correspond pas au tier.
+
+7. **Ordre strict de la nouvelle session**, avec arrêt net au premier échec :
+   1. Libellé et identifiant de la catégorie pulls (si ambigu, compte rendu et rien d'autre).
+   2. Test du token avec `/v2/users/me` (si 401, arrêt).
+   3. Code : dry-run par défaut de `seed:run`, `tier` et `cibleActives`, budget à 80 % du
+      plafond. Tests en mock, puis commit.
+   4. `seed:verify-volume --dry-run` sur les 3 pilotes, avec envoi du détail estimé.
+   5. **Point de contrôle humain** : aucun `--execute` sans go explicite.
