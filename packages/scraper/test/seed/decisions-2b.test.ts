@@ -118,7 +118,7 @@ describe('planSeedRun — dry-run (aucun appel, aucune base)', () => {
       batchSize: 50,
       maxDecouverteParCellule: 5,
     });
-    const nike = plan.cellules.find((c) => c.nom === 'Baskets|Nike');
+    const nike = plan.cellules.find((c) => c.nom === 'Baskets|Asics');
     expect(nike?.refus).toEqual([
       'non validée (valide: false)',
       'identifiant de catalogue inconnu (catalogId: null)',

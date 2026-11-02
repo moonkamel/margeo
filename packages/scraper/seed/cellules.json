@@ -2,24 +2,24 @@
   "_note": "Phase 2b. Aucune cellule n'est crawlable tant que valide=false. catalogId = source de vérité (le libellé est cosmétique) ; null = identifiant non relevé, la cellule ne peut pas être vérifiée ni crawlée. cibleActives doit correspondre au tier (priority 70, secondary 30, tertiary 20).",
   "cellules": [
     {
-      "categorie": "Baskets",
-      "catalogId": null,
+      "categorie": "Baskets (H)",
+      "catalogId": 1242,
       "marque": "Nike",
       "taille": null,
       "tier": "priority",
       "cibleActives": 70,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
+      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets)."
     },
     {
-      "categorie": "Baskets",
-      "catalogId": null,
+      "categorie": "Baskets (H)",
+      "catalogId": 1242,
       "marque": "Adidas",
       "taille": null,
       "tier": "priority",
       "cibleActives": 70,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
+      "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets)."
     },
     {
       "categorie": "Baskets",
@@ -29,7 +29,7 @@
       "tier": "secondary",
       "cibleActives": 30,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
+      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
     },
     {
       "categorie": "Baskets",
@@ -39,7 +39,7 @@
       "tier": "secondary",
       "cibleActives": 30,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume."
+      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
     },
     {
       "categorie": "Baskets",
@@ -49,7 +49,7 @@
       "tier": "tertiary",
       "cibleActives": 20,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : identifiant de catalogue NON relevé (Femmes et Hommes ont des identifiants distincts). À fournir avant toute vérification de volume. Remplacement prévu si < 200 actives : Puma ou Converse."
+      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
     },
     {
       "categorie": "Sweats et sweats à capuche (F)",
@@ -109,7 +109,7 @@
       "tier": "priority",
       "cibleActives": 70,
       "valide": false,
-      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
     },
     {
       "categorie": "Casques audio et écouteurs",
@@ -119,7 +119,7 @@
       "tier": "priority",
       "cibleActives": 70,
       "valide": false,
-      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
     },
     {
       "categorie": "Casques audio et écouteurs",
@@ -129,7 +129,7 @@
       "tier": "secondary",
       "cibleActives": 30,
       "valide": false,
-      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
     },
     {
       "categorie": "Casques audio et écouteurs",
@@ -139,7 +139,7 @@
       "tier": "tertiary",
       "cibleActives": 20,
       "valide": false,
-      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
     },
     {
       "categorie": "Casques audio et écouteurs",
@@ -149,7 +149,7 @@
       "tier": "tertiary",
       "cibleActives": 20,
       "valide": false,
-      "justification": "Fil d'Ariane observé : Électronique > Audio, casques et hi-fi > Casques audio et écouteurs. Identifiant de catalogue NON relevé, à fournir avant toute vérification de volume."
+      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
     }
   ]
 }

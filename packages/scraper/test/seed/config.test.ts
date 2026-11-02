@@ -144,9 +144,15 @@ describe('seed/cellules.json', () => {
     expect([parTier('priority'), parTier('secondary'), parTier('tertiary')]).toEqual([5, 5, 5]);
   });
 
-  it('pulls : catalogues 13 (F) et 79 (H) relevés le 2026-11-04', () => {
+  it('catalogues relevés le 2026-11-04 : pulls 13 (F) / 79 (H), baskets Nike et Adidas 1242 (H)', () => {
     const cat = Object.fromEntries(cellules.map((x) => [x.marque, x.catalogId]));
     expect(cat).toMatchObject({
+      Nike: 1242,
+      Adidas: 1242,
+      'New Balance': null,
+      Asics: null,
+      Veja: null,
+      Apple: null,
       Sézane: 13,
       Sandro: 13,
       Maje: 13,

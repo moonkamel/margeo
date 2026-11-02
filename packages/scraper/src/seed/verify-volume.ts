@@ -20,8 +20,11 @@ export const VERIFY_ARRET_DUR_CENTS = 1100;
 /** Seuil de volume : annonces actives de la marque dans la cellule. */
 export const VERIFY_SEUIL_ACTIVES = 200;
 export const VERIFY_MAX_ITEMS = 200;
-/** Cellules pilotes (une par catégorie), repérées par leur marque. */
-export const PILOTES = ['Nike', 'Sézane', 'Apple'] as const;
+/**
+ * Cellules pilotes, repérées par leur marque. Décision du 2026-11-04 : Apple (identifiant de
+ * « Casques audio et écouteurs » non relevé) est remplacé par Adidas et passe en 2e vague.
+ */
+export const PILOTES = ['Nike', 'Sézane', 'Adidas'] as const;
 
 export type EtapeVerif = 'pilotes' | 'reste';
 

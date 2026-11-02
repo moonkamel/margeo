@@ -28,11 +28,11 @@
 
 ## 1. Acteur Apify — à remplir après le comparatif
 
-| Acteur | Schéma d'entrée | Tarif réel / 1 000 résultats | Champ sold natif | Dernier run | Testé sur 1 URL |
-| ------ | --------------- | ---------------------------- | ---------------- | ----------- | --------------- |
-| —      | —               | —                            | —                | —           | —               |
-| —      | —               | —                            | —                | —           | —               |
-| —      | —               | —                            | —                | —           | —               |
+| Acteur                                                            | Schéma d'entrée                                                                                                                                          | Tarif réel / 1 000 résultats                                                                              | Champ sold natif                                                       | Dernier run                                             | Testé sur 1 URL |
+| ----------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------- | --------------- |
+| `kazkn/vinted-smart-scraper` (fiche lue le 2026-11-04, aucun run) | `query`, `categoryId`, `brandIds`, `sizeIds`, `maxItems` 1–300 ; **aucun paramètre de page ou d'offset** ; **plan Free plafonné à 30 résultats par run** | 2,50 $ (Free), 2,25 $ (Bronze), 2,125 $ (Silver), 1,875 $ (Gold et au-delà) + 0,02 $ par démarrage (Free) | `catalog_id` en sortie **non documenté** ; mode `SELL_THROUGH_TRACKER` | 2026-11-02 (126 494 runs, 55 utilisateurs sur 30 jours) | non             |
+| —                                                                 | —                                                                                                                                                        | —                                                                                                         | —                                                                      | —                                                       | —               |
+| —                                                                 | —                                                                                                                                                        | —                                                                                                         | —                                                                      | —                                                       | —               |
 
 Critères, dans l'ordre :
 

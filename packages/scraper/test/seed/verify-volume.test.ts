@@ -16,18 +16,17 @@ const PATH = new URL('../../seed/cellules.json', import.meta.url).pathname;
 describe('ciblesVerification', () => {
   const configs = readCellules(PATH);
 
-  it('étape pilotes : Baskets|Nike, Sézane (13), Casques|Apple', () => {
+  it('étape pilotes : Nike et Adidas (1242), Sézane (13), toutes mesurables', () => {
     const p = ciblesVerification(configs, 'pilotes');
-    expect(p.map((c) => c.nom)).toEqual([
-      'Baskets|Nike',
-      'Sweats et sweats à capuche (F)|Sézane',
-      'Casques audio et écouteurs|Apple',
+    expect(p.map((c) => [c.nom, c.catalogId])).toEqual([
+      ['Baskets (H)|Nike', 1242],
+      ['Baskets (H)|Adidas', 1242],
+      ['Sweats et sweats à capuche (F)|Sézane', 13],
     ]);
-    expect(p[1]?.url).toBe(
+    expect(p[2]?.url).toBe(
       'https://www.vinted.fr/catalog?catalog%5B%5D=13&search_text=S%C3%A9zane&order=newest_first',
     );
-    // Identifiants Baskets et Casques non encore relevés : non mesurables.
-    expect(p.map((c) => c.refus.length)).toEqual([1, 0, 1]);
+    expect(p.every((c) => c.refus.length === 0)).toBe(true);
   });
 
   it('étape reste : les 12 autres cellules', () => {
