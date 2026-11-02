@@ -1,0 +1,219 @@
+// Schéma Margeo Sourcing — tous les montants en centimes entiers (suffixe Cents).
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum ModeVente {
+  PARTICULIER
+  PRO
+}
+
+enum Plan {
+  FREE
+  MONTHLY
+  ANNUAL
+}
+
+enum Plateforme {
+  VINTED
+}
+
+enum Etat {
+  NEUF_AVEC_ETIQUETTE
+  NEUF_SANS_ETIQUETTE
+  TRES_BON
+  BON
+  SATISFAISANT
+}
+
+/// Statut d'une analyse : VERT/ORANGE/ROUGE si servie, INSUFFICIENT_DATA sinon.
+enum AnalysisStatut {
+  VERT
+  ORANGE
+  ROUGE
+  INSUFFICIENT_DATA
+}
+
+enum Confidence {
+  low
+  high
+}
+
+enum SoldSource {
+  sold_status
+  disappeared
+}
+
+enum ListingStatut {
+  active
+  sold
+}
+
+/// Miroir des statuts d'abonnement Stripe.
+enum SubscriptionStatus {
+  incomplete
+  incomplete_expired
+  trialing
+  active
+  past_due
+  canceled
+  unpaid
+  paused
+}
+
+model User {
+  id                             String    @id @default(cuid())
+  email                          String    @unique
+  tauxHoraireCents               Int       @default(1200)
+  seuilMargeCents                Int       @default(500)
+  tempsEstimeMinutes             Int       @default(20)
+  coutEmballageCents             Int       @default(50)
+  modeVente                      ModeVente @default(PARTICULIER)
+  /// Distingue la valeur par défaut d'un taux choisi explicitement par l'utilisateur.
+  tauxHoraireModifieManuellement Boolean   @default(false)
+  createdAt                      DateTime  @default(now())
+  updatedAt                      DateTime  @updatedAt
+
+  analyses       Analysis[]
+  alerts         Alert[]
+  subscription   Subscription?
+  magicLinks     MagicLinkToken[]
+  refreshTokens  RefreshToken[]
+}
+
+model MagicLinkToken {
+  id        String    @id @default(cuid())
+  /// SHA-256 du jeton envoyé par email ; le jeton en clair n'est jamais stocké.
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+/// Refresh tokens à rotation : chaque usage révoque le jeton et en émet un nouveau
+/// dans la même famille. La réutilisation d'un jeton révoqué invalide toute la famille.
+model RefreshToken {
+  id           String    @id @default(cuid())
+  tokenHash    String    @unique
+  familyId     String
+  userId       String
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  createdAt    DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model Analysis {
+  id              String         @id @default(cuid())
+  userId          String
+  url             String
+  externalId      String?
+  plateforme      Plateforme     @default(VINTED)
+  /// Snapshot de l'annonce normalisée au moment de l'analyse.
+  listingSnapshot Json
+  /// AnalysisResult complet (estimation + détail de marge) tel que servi au client.
+  result          Json
+  statut          AnalysisStatut
+  margeNetteCents Int?
+  score           Int?
+  confidence      Confidence?
+  categorie       String
+  marque          String?
+  /// false pour INSUFFICIENT_DATA et pour une réanalyse gratuite (même URL < 24 h).
+  consommeQuota   Boolean
+  createdAt       DateTime       @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([createdAt, categorie, marque])
+}
+
+model ListingObservation {
+  id         String        @id @default(cuid())
+  externalId String
+  plateforme Plateforme    @default(VINTED)
+  url        String
+  titre      String
+  categorie  String
+  marque     String?
+  taille     String?
+  etat       Etat
+  prixCents  Int
+  favoris    Int
+  vues       Int
+  statut     ListingStatut
+  payload    Json
+  observedAt DateTime      @default(now())
+
+  @@index([externalId, plateforme])
+  @@index([categorie, marque, observedAt])
+}
+
+model SoldObservation {
+  id             String     @id @default(cuid())
+  externalId     String
+  plateforme     Plateforme @default(VINTED)
+  /// Dernier prix affiché avant la vente (pas le prix négocié réel).
+  prixVenteCents Int
+  etat           Etat
+  categorie      String
+  marque         String?
+  taille         String?
+  /// Première observation / mise en ligne, si connue — sert au délai de vente.
+  listedAt       DateTime?
+  soldAt         DateTime
+  /// Seul `sold_status` alimente la médiane de prix ; `disappeared` ne sert qu'à la vitesse.
+  source         SoldSource
+  createdAt      DateTime   @default(now())
+
+  @@unique([externalId, plateforme])
+  @@index([categorie, marque, taille, soldAt])
+}
+
+model Alert {
+  id                  String    @id @default(cuid())
+  userId              String
+  query               Json
+  seuilMargeCents     Int
+  derniereExecutionAt DateTime?
+  active              Boolean   @default(true)
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([active, derniereExecutionAt])
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String             @unique
+  stripeCustomerId     String             @unique
+  stripeSubscriptionId String?            @unique
+  statut               SubscriptionStatus
+  plan                 Plan               @default(FREE)
+  currentPeriodEnd     DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

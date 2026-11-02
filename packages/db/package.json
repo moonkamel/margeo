@@ -1,0 +1,30 @@
+{
+  "name": "@margeo/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "@margeo/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "migrate:dev": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:diff": "prisma migrate diff --from-empty --to-schema prisma/schema.prisma --script"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1"
+  },
+  "devDependencies": {
+    "prisma": "^7.10.1",
+    "@margeo/shared": "workspace:*"
+  }
+}
