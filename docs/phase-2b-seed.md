@@ -512,8 +512,22 @@ S'il est élevé dans deux mois, on envisagera une migration de rattachement ré
   Ralph Lauren » (diffuse) ont des gammes de prix disjointes : à scinder si la médiane est trop
   dispersée.
 
+**Risque : taille absente sur les vêtements (abotapi)** — test du 2026-11-04, catalogue 13,
+« Sézane », `fetchDetails: true` : **0 annonce sur 5** porte une taille (aucune clé `size*`), alors que
+les titres l'indiquent (« Taille TU », « Gr. S », « taille M ») et qu'elle était présente sur
+Baskets (1242, « 42 »). Vinted expose donc la taille : c'est l'acteur qui ne la lit pas sur ces
+annonces (hypothèse b).
+
+- Conséquence si l'acteur abotapi est retenu : les cellules Sézane — et probablement toutes les
+  cellules des catalogues 13 et 79, à confirmer — sont calculées au niveau **(catégorie, marque)**
+  uniquement, affiché `niveau: 'marque'` dans l'UI. Précision moindre, produit intact.
+- L'annonce sans taille est acceptée (`taille: null`, avertissement `taille_absente`).
+- À re-vérifier sur studio-amba (tests B et C) avant le choix final de l'acteur.
+
 **Données personnelles** : `sanitizeListingPayload` (allowlist) filtre chaque payload avant
-stockage — aucun champ vendeur, ni `description`, ni photo. Toute évolution de la liste est validée.
+stockage — aucun champ vendeur, ni `description`, ni photo. Toute évolution de la liste est validée. `size`,
+`size_title`, `sizeId`, `size_id` y figurent ; `itemClosingAction` / `item_closing_action` en sont
+retirés (ambigus, non utilisés).
 
 **Prérequis durs avant tout `--execute`** : identifiants Baskets et Casques, acteur Apify choisi
 après le comparatif (section 1) et validé.
