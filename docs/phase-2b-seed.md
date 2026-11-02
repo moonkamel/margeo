@@ -101,7 +101,7 @@ interprétable. La taille n'a pas de sens ici, donc les stats se font au niveau 
 
 **Précision attendue à J+28** : 20 annonces actives × 15 cellules = 300 annonces suivies.
 
-- **Ventes attendues** : avec un taux de vente de 5 à 10 % par mois, environ 21 ventes au total,
+- **Ventes attendues** : avec l'hypothèse conservatrice de travail de 7 % par mois (le taux réel est entre 5 et 30 % selon la catégorie et la marque, à mesurer à J+14), environ 21 ventes au total,
   soit environ 1,4 par cellule sur la fenêtre de 30 jours.
 - **Niveaux (catégorie, marque, taille) et (catégorie, marque)** : ils resteront presque
   partout sous le minimum de 5 ventes, donc en `insufficient_data`.
@@ -136,7 +136,7 @@ de maturité dépend de la taille du parc par cellule, pas de la durée du crawl
 | Budget de vérification de 9 € atteint                                 | Arrêt dur, message explicite                                            |
 | Slug ou libellé de catalogue inattendu (ou 0 résultat sur une pilote) | Arrêt, libellé envoyé pour arbitrage                                    |
 
-## 3. Budget : 60 € TTC maximum, arrêt dur dans le code à 48 €
+## 3. Budget — remplacé par la section 8 (plafond dur de 100 €/mois, tiering)
 
 | Enveloppe  | Plafond  | Volume prévu                                                     |
 | ---------- | -------- | ---------------------------------------------------------------- |
@@ -214,7 +214,7 @@ La médiane est calculée sur une **fenêtre glissante de 30 jours** (décision 
 **s'accumulent donc pas** de mois en mois : à tout instant, une cellule ne compte que les
 ventes des 30 derniers jours.
 
-- **Ventes par mois et par cellule** : avec 20 annonces actives et ton taux de vente de 5 à 10 %
+- **Ventes par mois et par cellule** : avec 20 annonces actives et l'hypothèse conservatrice de 7 % (taux réel entre 5 et 30 %, à mesurer à J+14)
   par mois, on obtient environ **1,4 vente**. C'est le cas à S+4 comme à S+12.
 - **Pour franchir le minimum de 5 ventes en 30 jours au niveau (catégorie, marque)**, il faut
   environ 5 / 0,07 ≈ **70 annonces actives par cellule**.
@@ -335,3 +335,99 @@ reportée à la Phase 3.
 - `NB`, `AMI`, `Polo` et `Adidas Originals` ne sont rattachés à **aucune** cellule.
 
 Toute nouvelle validation d'alias passe par ce test.
+
+## 8. Décisions actées le 2026-11-03 (elles priment sur les sections précédentes)
+
+Le seed est l'actif principal du produit : le budget découle des objectifs de donnée, pas l'inverse.
+
+### 8.1 Tiering des cellules (révisable à J+14)
+
+| Tier          | Cellules                                                                                                    | Annonces actives par cellule | Objectif de maturité                                                                               |
+| ------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------- |
+| **Priority**  | Baskets\|Nike, Baskets\|Adidas, Casques\|Apple, Casques\|Sony, Pulls\|Sézane                                | 70 minimum                   | (catégorie, marque) à S+4 ; (catégorie, marque, taille) à S+12 sur les tailles les plus fréquentes |
+| **Secondary** | Baskets\|New Balance, Baskets\|Asics, Casques\|Bose, Pulls\|Sandro, Pulls\|Maje                             | 30                           | (catégorie, marque) à S+8                                                                          |
+| **Tertiary**  | Baskets\|Veja (ou Puma), Casques\|JBL, Casques\|Samsung, Pulls\|Ralph Lauren, Pulls\|AMI Paris (ou Lacoste) | 20                           | (catégorie) à S+4 ; (catégorie, marque) à S+12 si le taux de vente le permet                       |
+
+**À coder en début de session** :
+
+- `cellules.json` gagne les champs `tier` et `cibleActives` ;
+- la cible par cellule remplace l'option globale `--cible-actives`.
+
+### 8.2 Budget mensuel : plafond dur à 100 €
+
+Hypothèse : chaque annonce active est re-vérifiée une fois par jour, sur 30 jours.
+
+| Poste                                   | Volume par mois | T = 2,6 € pour 1 000 | T = 3,57 € pour 1 000 |
+| --------------------------------------- | --------------- | -------------------- | --------------------- |
+| Priority (350 actives)                  | ~10 500         | ~27 €                | ~37 €                 |
+| Secondary (150 actives)                 | ~4 500          | ~12 €                | ~16 €                 |
+| Tertiary (100 actives)                  | ~3 000          | ~8 €                 | ~11 €                 |
+| Découverte (compléter jusqu'aux cibles) | ~3 000          | ~8 €                 | ~11 €                 |
+| **Total**                               | ~21 000         | **~55 à 60 €**       | **~75 à 82 €**        |
+
+- **Plafond dur** : `SEED_BUDGET_CENTS_MAX=10000`, soit 100 €/mois. Il remplace le plafond de 48 €.
+- **Le crawl n'est pas coupé** pour économiser.
+- La vérification du volume garde son budget dédié de 9 €.
+
+### 8.3 `--execute` obligatoire
+
+- **Commandes concernées** : `seed:verify-volume` et `seed:run`. Elles tournent en `--dry-run` par
+  défaut et affichent les cellules, les lots et le coût maximal estimé, sans appeler Apify.
+- **À coder** : aujourd'hui, `seed:run` exécute directement. Il faut ajouter le mode dry-run par
+  défaut et passer `--execute` dans `.github/workflows/seed.yml`.
+
+### 8.4 Re-tiering à J+14 sur le taux de vente réel
+
+**Calcul du taux de vente par cellule** :
+ventes `sold_status` observées sur la période ÷ nombre moyen d'annonces actives suivies, ramené à
+30 jours. Les disparitions sont rapportées à part, comme signal faible.
+
+| Taux de vente sur 30 jours | Décision                                                                      |
+| -------------------------- | ----------------------------------------------------------------------------- |
+| Plus de 15 %               | Passage en priority, parc porté à 70 ou plus                                  |
+| Entre 7 et 15 %            | Tier inchangé                                                                 |
+| Moins de 7 %               | Descente d'un tier, ou remplacement par une autre marque de la même catégorie |
+
+La liste des 15 cellules n'est pas figée : elle est révisée à J+14 sur ces données.
+
+**Plan B, si le taux reste entre 5 et 7 % partout** :
+
+- le produit promet le niveau (catégorie, marque) sur les cellules priority, et le niveau
+  (catégorie) ailleurs ;
+- le budget mensuel est maintenu ;
+- la communication reste honnête.
+
+### 8.5 Transparence dans la payload et l'UI (Phases 3 et 4)
+
+**Deux champs distincts dans la payload** :
+
+- `niveau` : niveau de repli de l'estimation. Valeurs cibles `'taille' | 'marque' | 'categorie'`.
+  Aujourd'hui, ce sont `categorie_marque_taille`, `categorie_marque` et `categorie` : renommage à
+  faire avec l'API en Phase 3.
+- `source` : origine du **multiplicateur d'état**, `'empirical' | 'fallback'`. C'est un concept
+  distinct du niveau.
+
+**Nombre de ventes** : `ventesObservees` remplace `nbVentes`, renommage en Phase 3.
+
+**Affichage dans le panneau**, à côté du KPI de marge :
+« Basé sur 7 ventes en 30 jours (niveau marque, multiplicateur état empirique) ». La mention
+« précision moyenne » apparaît quand le niveau est la marque ou la catégorie.
+
+### 8.6 Marketing
+
+« Nous vous donnons la meilleure estimation possible avec les données disponibles. » Jamais
+« prédiction exacte ».
+
+### 8.7 Schéma et alias
+
+- `origine` (`SEED | MIGRATION`), `INDEX (origine)` et `CHECK (origine <> 'SEED' OR marque IS NOT NULL)` :
+  validé (section 6).
+- Alias de marques : validés (section 7). `NB`, `AMI`, `Polo` et `Adidas Originals` ne sont pas
+  rattachés. Le test de non-régression est obligatoire.
+
+### 8.8 Ordre de la nouvelle session
+
+1. Lecture du catalogue Vinted pour le slug exact de la catégorie pulls.
+2. Test de présence du token avec `GET /v2/users/me`.
+3. **Arrêt immédiat avec compte rendu** si le slug est ambigu ou le token absent.
+4. Sinon, déroulé de la section 0 dans l'ordre.
