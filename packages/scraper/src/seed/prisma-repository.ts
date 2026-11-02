@@ -168,6 +168,16 @@ export class PrismaSeedRepository implements SeedRepository {
     });
   }
 
+  async dernierRecheckEnTimeout(campagne: string) {
+    const dernier = await this.prisma.seedRun.findFirst({
+      where: { campagne, finishedAt: { not: null } },
+      orderBy: { startedAt: 'desc' },
+      select: { details: true },
+    });
+    const d = dernier?.details;
+    return typeof d === 'object' && d !== null && !Array.isArray(d) && d['recheckTimeout'] === true;
+  }
+
   async countNonRattachees() {
     return this.prisma.trackedListing.count({
       where: { statut: 'ACTIVE', catalogIdRecherche: null },

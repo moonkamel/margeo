@@ -106,6 +106,11 @@ export class MemoryRepo implements SeedRepository {
     ).length;
   }
 
+  async dernierRecheckEnTimeout(campagne: string) {
+    const runs = this.runs.filter((r) => r.campagne === campagne && r.summary !== null);
+    return runs.at(-1)?.summary?.details['recheckTimeout'] === true;
+  }
+
   async countNonRattachees() {
     return [...this.state.tracked.values()].filter(
       (t) => t.statut === 'ACTIVE' && t.catalogIdRecherche === null,

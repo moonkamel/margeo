@@ -385,7 +385,7 @@ describe('frais fixes par run — comptés dans le budget (décision du 2026-11-
       budget: budgetDepuisPlafond(10_000, 260, 5000),
       source,
       repo,
-      batchSize: 50,
+      tailleLotReverification: 50,
       now: () => new Date(T0),
     });
     expect(source.appels).toEqual([
@@ -433,7 +433,7 @@ describe('frais fixes par run — comptés dans le budget (décision du 2026-11-
         plafondCents: 10_000,
         source,
         repo,
-        batchSize: 10,
+        tailleLotReverification: 10,
         now: () => new Date(clock),
       });
       expect(repo.totalSpent()).toBeLessThanOrEqual(80 * EUR);

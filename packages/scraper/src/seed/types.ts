@@ -174,6 +174,8 @@ export interface SeedRepository {
    * jamais re-vérifiées par le seed. Compteur interne `analysesNonRattachees`.
    */
   countNonRattachees(): Promise<number>;
+  /** Le dernier run de la campagne a-t-il eu un lot de re-vérification en timeout ? */
+  dernierRecheckEnTimeout(campagne: string): Promise<boolean>;
   /** Parent connu de chaque sous-catégorie demandée (absentes = jamais observées). */
   subcategoryParents(ids: readonly number[]): Promise<Map<number, number>>;
   /** Sous-ensemble des identifiants déjà suivis. */

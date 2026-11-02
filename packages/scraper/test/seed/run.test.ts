@@ -227,7 +227,7 @@ describe('runSeed — re-vérification', () => {
   it('lots de taille bornée', async () => {
     jourSuivant();
     source.appels.length = 0;
-    await run({ batchSize: 3 });
+    await run({ tailleLotReverification: 3 });
     expect(source.appels.filter((a) => a.type === 'recheck').map((a) => a.taille)).toEqual([3, 1]);
   });
 });

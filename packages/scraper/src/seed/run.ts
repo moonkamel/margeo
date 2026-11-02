@@ -1,3 +1,4 @@
+import { ScraperError } from '../errors.js';
 import { BrandResolver } from './brand-alias.js';
 import { BudgetLedger, formatMilli, type BudgetConfig, type Envelope } from './budget.js';
 import { premierDuMoisSuivant } from './campagne.js';
@@ -16,6 +17,11 @@ import type {
   SeedSource,
 } from './types.js';
 
+/** Taille nominale d'un lot de re-vérification (un run Apify par lot). */
+export const TAILLE_LOT_REVERIFICATION = 100;
+/** Taille de repli après un timeout. */
+export const TAILLE_LOT_REPLI = 50;
+
 export interface SeedLogger {
   (event: string, data: Record<string, unknown>): void;
 }
@@ -29,7 +35,7 @@ export interface RunSeedOptions {
   now?: () => Date;
   log?: SeedLogger;
   /** Taille max d'un lot de re-vérification (défaut 50). */
-  batchSize?: number;
+  tailleLotReverification?: number;
   /** Résultats max de découverte par cellule et par jour (défaut 5). */
   maxDecouverteParCellule?: number;
   /**
@@ -85,7 +91,12 @@ interface Rejets {
 export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
   const now = opts.now ?? (() => new Date());
   const log: SeedLogger = opts.log ?? (() => {});
-  const batchSize = opts.batchSize ?? 50;
+  // Lots de 100 (décision du 2026-11-04 : moitié moins de frais fixes qu'à 50). Repli à 50 si
+  // un lot a dépassé son délai, dans ce run ou dans le run précédent de la campagne.
+  const lotNominal = opts.tailleLotReverification ?? TAILLE_LOT_REVERIFICATION;
+  const timeoutPrecedent = await opts.repo.dernierRecheckEnTimeout(opts.campagne);
+  let tailleLot = timeoutPrecedent ? Math.min(lotNominal, TAILLE_LOT_REPLI) : lotNominal;
+  let recheckTimeout = false;
   const maxDecouverte = opts.maxDecouverteParCellule ?? 5;
   const intervalle = opts.intervalleVerifMs ?? 20 * 60 * 60 * 1000;
   const resolver =
@@ -171,7 +182,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     const avant = new Date(now().getTime() - intervalle);
     const aVerifier = await repo.listToRecheck(avant, 100_000);
     for (let i = 0; i < aVerifier.length && !ledger.stopped;) {
-      const taille = Math.min(batchSize, aVerifier.length - i, ledger.affordableResultats('suivi'));
+      const taille = Math.min(tailleLot, aVerifier.length - i, ledger.affordableResultats('suivi'));
       if (taille <= 0) {
         ledger.reserve('suivi', 1); // déclenche l'arrêt dur
         break;
@@ -182,8 +193,17 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
       try {
         reponse = await billed('suivi', lot.length, () => source.recheck(lot.map((t) => t.url)));
       } catch (err) {
+        // Lot en échec : aucune annonce n'est modifiée (derniereVerifAt inchangée), toutes sont
+        // reprises au run suivant. Coût maximal compté par prudence (billed).
         compteurs.erreurs++;
         log('seed.recheck.error', { runId, lot: lot.length, error: String(err) });
+        if (err instanceof ScraperError && err.code === 'timeout' && !recheckTimeout) {
+          recheckTimeout = true;
+          alertes.push(
+            `Timeout sur un lot de re-vérification de ${lot.length} annonces : lots réduits à ${Math.min(tailleLot, TAILLE_LOT_REPLI)} pour ce run et le suivant.`,
+          );
+          tailleLot = Math.min(tailleLot, TAILLE_LOT_REPLI);
+        }
         continue;
       }
       if (!reponse) break;
@@ -363,6 +383,8 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
       rejets,
       elargissements,
       analysesNonRattachees,
+      tailleLot,
+      recheckTimeout,
       arret: arretMotif,
       decouverteCoupee: ledger.decouverteCoupee,
       depense: { suivi: snap.suivi, decouverte: snap.decouverte, total: snap.totalMilli },

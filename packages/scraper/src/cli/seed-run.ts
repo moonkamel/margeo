@@ -28,6 +28,7 @@ import {
   requireSeedEnv,
   runSeed,
   SeedConfigError,
+  TAILLE_LOT_REVERIFICATION,
 } from '../seed/index.js';
 
 const intArg = (name: string, v: string | undefined, def?: number): number => {
@@ -66,7 +67,7 @@ async function main(): Promise<number> {
       cellules: { type: 'string', default: 'seed/cellules.json' },
       cellule: { type: 'string' },
       campagne: { type: 'string' },
-      batch: { type: 'string' },
+      'lot-reverification': { type: 'string' },
       'max-decouverte': { type: 'string' },
       'log-file': { type: 'string' },
     },
@@ -94,7 +95,7 @@ async function main(): Promise<number> {
 
   let configs;
   let plafondCents: number;
-  let batchSize: number;
+  let tailleLot: number;
   let maxDecouverte: number;
   try {
     plafondCents = intArg(
@@ -102,7 +103,12 @@ async function main(): Promise<number> {
       values['budget-max'] ?? process.env['SEED_BUDGET_CENTS_MAX'],
       10_000,
     );
-    batchSize = intArg('batch', values.batch, 50);
+    tailleLot = intArg(
+      'lot-reverification',
+      values['lot-reverification'],
+      TAILLE_LOT_REVERIFICATION,
+    );
+    if (tailleLot === 0) throw new SeedConfigError('--lot-reverification doit être > 0');
     maxDecouverte = intArg('max-decouverte', values['max-decouverte'], 5);
     configs = readCellules(values.cellules ?? 'seed/cellules.json', values.cellule);
   } catch (err) {
@@ -126,7 +132,7 @@ async function main(): Promise<number> {
       plafondCents,
       tarifs,
       coutParRunMilli,
-      batchSize,
+      batchSize: tailleLot,
       maxDecouverteParCellule: maxDecouverte,
     });
     console.log(formatSeedPlan(plan, plafondCents, campagne));
@@ -170,7 +176,8 @@ async function main(): Promise<number> {
     const driver = new ApifyDriver({
       actorId: env.apifyActorId,
       token: env.apifyToken,
-      timeoutSecs: 280,
+      // Timeout explicite d'un run (lot de 100) : au-delà, repli automatique à 50.
+      timeoutSecs: 120,
     });
     const result = await runSeed({
       campagne,
@@ -181,7 +188,7 @@ async function main(): Promise<number> {
       source: new ApifySeedSource(driver),
       repo,
       log,
-      batchSize,
+      tailleLotReverification: tailleLot,
       maxDecouverteParCellule: maxDecouverte,
     });
 

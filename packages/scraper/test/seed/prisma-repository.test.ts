@@ -249,6 +249,27 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
     expect(await repo.campaignSpent('verify-backfill')).toEqual({ suivi: 0, decouverte: 24_000 });
   });
 
+  it('repli des lots : drapeau de timeout lu sur le dernier run terminé de la campagne', async () => {
+    const repo = new PrismaSeedRepository(prisma);
+    expect(await repo.dernierRecheckEnTimeout('lots-integ')).toBe(false);
+    const mk = (startedAt: string, recheckTimeout: boolean, fini = true) =>
+      prisma.seedRun.create({
+        data: {
+          campagne: 'lots-integ',
+          budgetMaxCents: 8000,
+          startedAt: new Date(startedAt),
+          finishedAt: fini ? new Date(startedAt) : null,
+          details: { recheckTimeout },
+        },
+      });
+    await mk('2026-11-10T05:00:00Z', true);
+    expect(await repo.dernierRecheckEnTimeout('lots-integ')).toBe(true);
+    await mk('2026-11-11T05:00:00Z', false);
+    expect(await repo.dernierRecheckEnTimeout('lots-integ')).toBe(false);
+    await mk('2026-11-12T05:00:00Z', true, false); // run en cours : ignoré
+    expect(await repo.dernierRecheckEnTimeout('lots-integ')).toBe(false);
+  });
+
   it('hard stop persistant : une campagne à 48 € ne lance plus aucun appel', async () => {
     await prisma.seedRun.create({
       data: {
