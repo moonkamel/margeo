@@ -13,6 +13,16 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: margeo
+          POSTGRES_PASSWORD: margeo
+          POSTGRES_DB: margeo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U margeo -d margeo" --health-interval 5s --health-timeout 3s --health-retries 10
       redis:
         image: redis:7-alpine
         ports:
@@ -20,8 +30,9 @@ jobs:
         options: >-
           --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 3s --health-retries 10
     env:
-      # Active les tests d'intégration du cache de stats (packages/scraper).
+      # Active les tests d'intégration : cache de stats (scraper) et migrations (db).
       REDIS_URL: redis://localhost:6379
+      DATABASE_URL: postgresql://margeo:margeo@localhost:5432/margeo
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4

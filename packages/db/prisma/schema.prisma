@@ -51,9 +51,11 @@ enum SoldSource {
   disappeared
 }
 
-enum ListingStatut {
-  active
-  sold
+enum TrackedListingStatut {
+  ACTIVE
+  SOLD
+  DISAPPEARED
+  CLOSED
 }
 
 /// Miroir des statuts d'abonnement Stripe.
@@ -81,11 +83,11 @@ model User {
   createdAt                      DateTime  @default(now())
   updatedAt                      DateTime  @updatedAt
 
-  analyses       Analysis[]
-  alerts         Alert[]
-  subscription   Subscription?
-  magicLinks     MagicLinkToken[]
-  refreshTokens  RefreshToken[]
+  analyses      Analysis[]
+  alerts        Alert[]
+  subscription  Subscription?
+  magicLinks    MagicLinkToken[]
+  refreshTokens RefreshToken[]
 }
 
 model MagicLinkToken {
@@ -146,43 +148,77 @@ model Analysis {
   @@index([createdAt, categorie, marque])
 }
 
-model ListingObservation {
-  id         String        @id @default(cuid())
-  externalId String
-  plateforme Plateforme    @default(VINTED)
-  url        String
-  titre      String
-  categorie  String
-  marque     String?
-  taille     String?
-  etat       Etat
-  prixCents  Int
-  favoris    Int
-  vues       Int
-  statut     ListingStatut
-  payload    Json
-  observedAt DateTime      @default(now())
+/// État COURANT d'une annonce suivie par le crawler (une ligne par annonce).
+/// Seule source de vérité de l'état ; ListingObservation n'est qu'un journal de snapshots.
+model TrackedListing {
+  id                String               @id @default(uuid()) @db.Uuid
+  plateforme        Plateforme           @default(VINTED)
+  externalId        String
+  url               String
+  categorie         String
+  marque            String?
+  /// Null pour les catégories sans taille (tech).
+  taille            String?
+  prixInitialCents  Int
+  prixCourantCents  Int
+  etat              Etat
+  statut            TrackedListingStatut @default(ACTIVE)
+  premiereVuAt      DateTime             @db.Timestamptz(3)
+  derniereVuAt      DateTime             @db.Timestamptz(3)
+  derniereVerifAt   DateTime             @db.Timestamptz(3)
+  /// Échecs « introuvable » consécutifs (règle : 2 échecs espacés d'au moins 12 h → DISAPPEARED).
+  echecsConsecutifs Int                  @default(0)
+  soldAt            DateTime?            @db.Timestamptz(3)
+  soldPrixCents     Int?
+  soldSource        SoldSource?
 
-  @@index([externalId, plateforme])
-  @@index([categorie, marque, observedAt])
+  observations ListingObservation[]
+  vente        SoldObservation?
+
+  @@unique([plateforme, externalId])
+  @@index([statut, derniereVerifAt])
 }
 
+/// Journal APPEND-ONLY : un snapshot de l'annonce à chaque observation réussie.
+/// Aucun champ d'état courant ici (il vit dans TrackedListing). Une observation
+/// « introuvable » n'écrit rien ici : elle incrémente TrackedListing.echecsConsecutifs.
+model ListingObservation {
+  id               String   @id @default(cuid())
+  trackedListingId String   @db.Uuid
+  titre            String
+  etat             Etat
+  prixCents        Int
+  favoris          Int
+  vues             Int
+  payload          Json
+  observedAt       DateTime @default(now())
+
+  trackedListing TrackedListing @relation(fields: [trackedListingId], references: [id], onDelete: Cascade)
+
+  @@index([trackedListingId, observedAt])
+}
+
+/// PROJECTION de TrackedListing, écrite quand son statut passe à SOLD ou DISAPPEARED.
+/// Dénormalisée pour les requêtes de stats ; la source de vérité reste TrackedListing.
 model SoldObservation {
-  id             String     @id @default(cuid())
-  externalId     String
-  plateforme     Plateforme @default(VINTED)
+  id               String     @id @default(cuid())
+  trackedListingId String     @unique @db.Uuid
+  externalId       String
+  plateforme       Plateforme @default(VINTED)
   /// Dernier prix affiché avant la vente (pas le prix négocié réel).
-  prixVenteCents Int
-  etat           Etat
-  categorie      String
-  marque         String?
-  taille         String?
+  prixVenteCents   Int
+  etat             Etat
+  categorie        String
+  marque           String?
+  taille           String?
   /// Première observation / mise en ligne, si connue — sert au délai de vente.
-  listedAt       DateTime?
-  soldAt         DateTime
+  listedAt         DateTime?
+  soldAt           DateTime
   /// Seul `sold_status` alimente la médiane de prix ; `disappeared` ne sert qu'à la vitesse.
-  source         SoldSource
-  createdAt      DateTime   @default(now())
+  source           SoldSource
+  createdAt        DateTime   @default(now())
+
+  trackedListing TrackedListing @relation(fields: [trackedListingId], references: [id], onDelete: Cascade)
 
   @@unique([externalId, plateforme])
   @@index([categorie, marque, taille, soldAt])
