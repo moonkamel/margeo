@@ -52,3 +52,20 @@ export function buildCellSearchUrl(catalogId: number, brand: string, size: strin
   u.searchParams.set('order', 'newest_first');
   return u.toString();
 }
+
+/**
+ * URL de recherche d'un MODÈLE ciblé (scanner) : catalogue exact + texte du modèle, plus récentes
+ * d'abord. La marque et le modèle sont revérifiés sur chaque annonce (titre, `brand_title`).
+ */
+export function buildModelSearchUrl(catalogId: number, searchText: string): string {
+  if (!Number.isInteger(catalogId) || catalogId <= 0) {
+    throw new ScraperError('invalid_url', `Identifiant de catalogue invalide : ${catalogId}`);
+  }
+  const texte = searchText.trim();
+  if (texte === '') throw new ScraperError('invalid_url', 'Texte de recherche vide');
+  const u = new URL('https://www.vinted.fr/catalog');
+  u.searchParams.append('catalog[]', String(catalogId));
+  u.searchParams.set('search_text', texte);
+  u.searchParams.set('order', 'newest_first');
+  return u.toString();
+}

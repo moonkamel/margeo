@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "notes": "Modèles ciblés par le scanner. Prix neufs et coefficients = ESTIMATIONS (prixVerifie: false) tant que l'utilisateur ne les a pas vérifiés. coefficientInitial = revente / prix neuf en TRÈS BON ÉTAT ; les autres états passent par MULTIPLICATEURS_ETAT_REPLI.",
+  "modeles": [
+    {
+      "id": "carhartt-detroit",
+      "marque": "Carhartt",
+      "modele": "Detroit Jacket",
+      "searchText": "Carhartt Detroit",
+      "catalogId": 2052,
+      "catalogPath": ["Hommes", "Vêtements", "Manteaux et vestes", "Vestes"],
+      "motsClesTitre": ["detroit", "j97"],
+      "exclusionsTitre": [],
+      "classeColis": "MOYEN",
+      "prixNeufCents": 15500,
+      "coefficientInitial": 0.32,
+      "prixVerifie": false,
+      "sourcePrix": "estimation (médiane Vinted 49,95 € / neuf ~155 €), 2026-11-03, à vérifier sur carhartt.com"
+    },
+    {
+      "id": "carhartt-active",
+      "marque": "Carhartt",
+      "modele": "Active Jacket",
+      "searchText": "Carhartt Active Jacket",
+      "catalogId": 2052,
+      "catalogPath": ["Hommes", "Vêtements", "Manteaux et vestes", "Vestes"],
+      "motsClesTitre": ["active jacket", "active hooded", "j130"],
+      "exclusionsTitre": [],
+      "classeColis": "MOYEN",
+      "prixNeufCents": 13000,
+      "coefficientInitial": 0.38,
+      "prixVerifie": false,
+      "sourcePrix": "estimation, 2026-11-03, à vérifier sur carhartt.com"
+    },
+    {
+      "id": "carhartt-crawford",
+      "marque": "Carhartt",
+      "modele": "Crawford Detroit",
+      "searchText": "Carhartt Crawford",
+      "catalogId": 2052,
+      "catalogPath": ["Hommes", "Vêtements", "Manteaux et vestes", "Vestes"],
+      "motsClesTitre": ["crawford"],
+      "exclusionsTitre": [],
+      "classeColis": "MOYEN",
+      "prixNeufCents": 10000,
+      "coefficientInitial": 0.38,
+      "prixVerifie": false,
+      "sourcePrix": "estimation, 2026-11-03, à vérifier sur carhartt.com"
+    },
+    {
+      "id": "carhartt-wip-og-detroit",
+      "marque": "Carhartt WIP",
+      "modele": "OG Detroit Jacket",
+      "searchText": "Carhartt WIP OG Detroit",
+      "catalogId": 2052,
+      "catalogPath": ["Hommes", "Vêtements", "Manteaux et vestes", "Vestes"],
+      "motsClesTitre": ["og detroit"],
+      "exclusionsTitre": [],
+      "classeColis": "MOYEN",
+      "prixNeufCents": 25000,
+      "coefficientInitial": 0.45,
+      "prixVerifie": false,
+      "sourcePrix": "estimation, 2026-11-03, à vérifier sur carhartt-wip.com"
+    }
+  ]
+}
