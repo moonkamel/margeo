@@ -67,3 +67,20 @@ coûte 0,04 $ de frais fixes : 4 recherches + 1 run de détails par jour ≈ 7 �
   (groupe de concurrence `apify-runs` partagé avec le seed).
 - Secrets `TELEGRAM_BOT_TOKEN` et `TELEGRAM_CHAT_ID` (jamais dans un fichier ni un log).
 - Titres réels d'annonces pour enrichir les tests de reconnaissance.
+
+## Mesure du 2026-11-03 (run facturé, accord de l'utilisateur)
+
+Recherche « Carhartt Detroit », catalogue 2052, 100 annonces les plus récentes, sans détails.
+Coût annoncé par Apify : 0,04 $ (facturation des résultats possiblement en retard, ≤ ~0,21 $).
+
+- Fenêtre couverte : ~5,7 jours (identifiants Vinted → date, ~535 000 identifiants / heure) :
+  **~15 nouvelles Detroit par jour**.
+- 86 reconnues comme Detroit. Prix AFFICHÉS : min 39,99 €, p25 65 €, **médiane 90–95 €**, p75 150 €.
+- **0 annonce ≤ 35 €**, 5 ≤ 50 € (dont 3 à 54,99 € au même libellé portugais : revendeur ou
+  contrefaçon probable).
+- La recherche sans détails ne renvoie ni état, ni taille, ni catégorie, ni date de publication.
+- Constat : la médiane externe de « 49,95 € » est incohérente avec des prix affichés médians de
+  90 €. Le prix de vente réel reste inconnu : seul le seed peut le mesurer.
+- Critère d'arrêt (≥ 1 Detroit par semaine à ≤ 18 €) : **non atteint (0)**. Même avec une revente
+  réelle de 65–70 €, il faudrait acheter ≤ ~35 € : 0 annonce sur la période.
+- Exclusion « style » trop large : « Vintage Retro Style 90s » écarté à tort (à affiner).
