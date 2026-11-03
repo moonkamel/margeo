@@ -191,6 +191,8 @@ export interface SeedRepository {
    * jamais re-vérifiées par le seed. Compteur interne `analysesNonRattachees`.
    */
   countNonRattachees(): Promise<number>;
+  /** Annonces ACTIVE du seed (catalogIdRecherche renseigné), éligibles ou non à la re-vérification. */
+  countSuiviesSeed(): Promise<number>;
   /** Le dernier run de la campagne a-t-il eu un lot de re-vérification en timeout ? */
   dernierRecheckEnTimeout(campagne: string): Promise<boolean>;
   /** Parent connu de chaque sous-catégorie demandée (absentes = jamais observées). */

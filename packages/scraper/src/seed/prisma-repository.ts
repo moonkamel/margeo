@@ -178,6 +178,12 @@ export class PrismaSeedRepository implements SeedRepository {
     return typeof d === 'object' && d !== null && !Array.isArray(d) && d['recheckTimeout'] === true;
   }
 
+  async countSuiviesSeed() {
+    return this.prisma.trackedListing.count({
+      where: { statut: 'ACTIVE', catalogIdRecherche: { not: null } },
+    });
+  }
+
   async countNonRattachees() {
     return this.prisma.trackedListing.count({
       where: { statut: 'ACTIVE', catalogIdRecherche: null },

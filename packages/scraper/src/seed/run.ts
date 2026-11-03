@@ -121,6 +121,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
   const runId = await repo.startRun(campagne, opts.budget.hardStopCents, startedAt);
   const depenseAvant = ledger.totalMilli;
   const analysesNonRattachees = await repo.countNonRattachees();
+  let nonEligibles: number | undefined;
   const alertes: string[] = [];
   const parCellule: Record<string, CelluleLog> = {};
   const rejets: Record<string, Rejets> = {};
@@ -198,6 +199,16 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     // 1. Re-vérification --------------------------------------------------------------------
     const avant = new Date(now().getTime() - intervalle);
     const aVerifier = await repo.listToRecheck(avant, 100_000);
+    // Annonces suivies pas encore re-vérifiables (vérifiées il y a moins de l'intervalle) :
+    // écartées volontairement, mais signalées pour qu'un « 0 re-vérification » ne soit pas muet.
+    nonEligibles = Math.max(0, (await repo.countSuiviesSeed()) - aVerifier.length);
+    if (nonEligibles > 0) {
+      log('seed.recheck.non_eligibles', {
+        runId,
+        annonces: nonEligibles,
+        message: `${nonEligibles} annonce(s) suivie(s) non encore re-vérifiable(s) (moins de ${Math.round(intervalle / 3_600_000)} h depuis la dernière vérification)`,
+      });
+    }
     for (let i = 0; i < aVerifier.length && !ledger.stopped;) {
       const taille = Math.min(tailleLot, aVerifier.length - i, ledger.affordableResultats('suivi'));
       if (taille <= 0) {
@@ -416,6 +427,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
       rejets,
       elargissements,
       analysesNonRattachees,
+      nonEligibles: nonEligibles ?? 0,
       tailleLot,
       recheckTimeout,
       arret: arretMotif,
@@ -430,6 +442,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<RunSeedResult> {
     statut,
     ...compteurs,
     analysesNonRattachees,
+    nonEligibles: nonEligibles ?? 0,
     depenseRun: formatMilli(snap.totalMilli - depenseAvant),
     depenseCampagne: formatMilli(snap.totalMilli),
     alertes,

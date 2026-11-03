@@ -133,6 +133,46 @@ describe('lots de re-vérification', () => {
     expect(lots()).toEqual([100, 100, 50]); // plus de timeout : retour à 100
   });
 
+  it('annonces pas encore re-vérifiables : comptées et journalisées (pas de 0 muet)', async () => {
+    parc(30);
+    // 10 annonces vérifiées il y a 2 h : hors intervalle de 20 h.
+    for (let i = 0; i < 10; i++) {
+      const t = repo.state.tracked.get(`t${i}`);
+      if (t) t.derniereVerifAt = new Date(T0 - 2 * H);
+    }
+    const journal: { event: string; data: Record<string, unknown> }[] = [];
+    const r = await runSeed({
+      campagne: 'lots',
+      cellules: [CELL],
+      budget: budgetDepuisPlafond(10_000, 260, 5000),
+      source,
+      repo,
+      now: () => new Date(clock),
+      log: (event, data) => journal.push({ event, data }),
+    });
+    expect(lots()).toEqual([20]);
+    expect(r.details['nonEligibles']).toBe(10);
+    const evt = journal.find((e) => e.event === 'seed.recheck.non_eligibles');
+    expect(evt?.data['message']).toBe(
+      '10 annonce(s) suivie(s) non encore re-vérifiable(s) (moins de 20 h depuis la dernière vérification)',
+    );
+  });
+
+  it('aucune annonce en attente : pas de message', async () => {
+    parc(5);
+    const journal: string[] = [];
+    await runSeed({
+      campagne: 'lots',
+      cellules: [CELL],
+      budget: budgetDepuisPlafond(10_000, 260, 5000),
+      source,
+      repo,
+      now: () => new Date(clock),
+      log: (event) => journal.push(event),
+    });
+    expect(journal).not.toContain('seed.recheck.non_eligibles');
+  });
+
   it('un autre type d’échec ne réduit pas les lots', async () => {
     parc(250);
     source.failNext = new Error('panne réseau');

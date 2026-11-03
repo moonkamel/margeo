@@ -234,6 +234,10 @@ describe.skipIf(!DATABASE_URL)('PrismaSeedRepository — Postgres réel', () => 
     expect(liste.map((t) => t.externalId)).not.toContain('hors-seed');
     expect(liste.every((t) => t.catalogIdRecherche !== null)).toBe(true);
     expect(await new PrismaSeedRepository(prisma).countNonRattachees()).toBe(1);
+    // Annonces du seed suivies : toutes celles listées + celles pas encore re-vérifiables.
+    expect(await new PrismaSeedRepository(prisma).countSuiviesSeed()).toBeGreaterThanOrEqual(
+      liste.length,
+    );
   });
 
   it('backfill : dépense saisie comptée dans la campagne, double saisie refusée', async () => {
