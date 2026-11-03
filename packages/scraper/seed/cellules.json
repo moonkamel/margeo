@@ -1,5 +1,5 @@
 {
-  "_note": "Phase 2b. Aucune cellule n'est crawlable tant que valide=false. catalogId = source de vérité (le libellé est cosmétique) ; null = identifiant non relevé, la cellule ne peut pas être vérifiée ni crawlée. cibleActives doit correspondre au tier (priority 70, secondary 30, tertiary 20). Test de pipeline du 2026-11-04 : seules Nike, Adidas (1242) et Sézane (13) sont validées, en secondary (30), pour 15 jours ; le tiering de la section 8.1 reprend au seed complet.",
+  "_note": "Pivot du 2026-11-02 : outil personnel, périmètre de 6 marques en secondary (cible 30). Actives : Nike, Adidas (1242), Sézane (13). À vérifier en décembre (valide: false) : New Balance (1242 et 2632, on gardera le côté le plus liquide), Ralph Lauren (79), The North Face (5). catalogId = source de vérité ; brandId = identifiant de marque Vinted, informatif (non utilisé pour la recherche). Cellules archivées : seed/cellules-archive.json.",
   "cellules": [
     {
       "categorie": "Baskets (H)",
@@ -22,34 +22,24 @@
       "justification": "Catalogue 1242, relevé le 2026-11-04 sur vinted.fr (Hommes > Chaussures > Baskets, slug trainers). Côté Hommes faute d'identifiant Femmes vérifié (1231 = Chaussures Femmes, parent, pas Baskets). — 2026-11-04 : volume vérifié (≥ 200 sur 250 résultats) ; passée en secondary (cible 30) et validée pour le test de pipeline de 15 jours (décision du 2026-11-04 : une cible de 70 à 5 découvertes par jour ne serait atteinte qu'à J+14)."
     },
     {
-      "categorie": "Baskets",
-      "catalogId": null,
+      "categorie": "Baskets (H)",
+      "catalogId": 1242,
       "marque": "New Balance",
       "taille": null,
       "tier": "secondary",
       "cibleActives": 30,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
+      "justification": "Catalogue 1242 (Hommes > Chaussures > Baskets). New Balance mesurée des deux côtés en décembre (1242 et 2632) ; on garde le côté le plus liquide. Volume non vérifié."
     },
     {
-      "categorie": "Baskets",
-      "catalogId": null,
-      "marque": "Asics",
+      "categorie": "Baskets (F)",
+      "catalogId": 2632,
+      "marque": "New Balance",
       "taille": null,
       "tier": "secondary",
       "cibleActives": 30,
       "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
-    },
-    {
-      "categorie": "Baskets",
-      "catalogId": null,
-      "marque": "Veja",
-      "taille": null,
-      "tier": "tertiary",
-      "cibleActives": 20,
-      "valide": false,
-      "justification": "Catégorie Vinted « Baskets » : Hommes = 1242 (vérifié) ; Femmes : identifiant enfant de 1231 (Chaussures Femmes) non relevé. Côté à décider avec l'identifiant Femmes."
+      "justification": "Catalogue 2632 « Baskets Femmes » (lien de recherche fourni le 2026-11-04, à confirmer en décembre via categoryPath). Mesurée en parallèle de 1242 ; on garde le côté le plus liquide. Volume non vérifié."
     },
     {
       "categorie": "Sweats et sweats à capuche (F)",
@@ -64,92 +54,23 @@
     {
       "categorie": "Sweats et pulls (H)",
       "catalogId": 79,
-      "marque": "AMI Paris",
-      "taille": null,
-      "tier": "tertiary",
-      "cibleActives": 20,
-      "valide": false,
-      "justification": "Catalogue 79, relevé le 2026-11-04 sur vinted.fr (Hommes > Vêtements > Sweats et pulls, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Remplacement prévu si < 200 actives : Lacoste ou Tommy Hilfiger."
-    },
-    {
-      "categorie": "Sweats et sweats à capuche (F)",
-      "catalogId": 13,
-      "marque": "Sandro",
-      "taille": null,
-      "tier": "secondary",
-      "cibleActives": 30,
-      "valide": false,
-      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Sandro a aussi une ligne Homme : si sous-performant à J+14, ajouter Sandro|79 en cellule #16 plutôt que de basculer."
-    },
-    {
-      "categorie": "Sweats et sweats à capuche (F)",
-      "catalogId": 13,
-      "marque": "Maje",
-      "taille": null,
-      "tier": "secondary",
-      "cibleActives": 30,
-      "valide": false,
-      "justification": "Catalogue 13, relevé le 2026-11-04 sur vinted.fr (Femmes > Vêtements > Sweats et sweats à capuche, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId."
-    },
-    {
-      "categorie": "Sweats et pulls (H)",
-      "catalogId": 79,
       "marque": "Ralph Lauren",
       "taille": null,
-      "tier": "tertiary",
-      "cibleActives": 20,
+      "tier": "secondary",
+      "cibleActives": 30,
       "valide": false,
-      "justification": "Catalogue 79, relevé le 2026-11-04 sur vinted.fr (Hommes > Vêtements > Sweats et pulls, slug jumpers-and-sweaters). Catégorie parente crawlée entière (décision 1a) ; sous-catégorie stockée dans TrackedListing.subcategoryId. Version large pour le pilote ; « Polo Ralph Lauren » et « Lauren Ralph Lauren » ont des gammes de prix distinctes : à scinder à J+14 si la médiane est trop dispersée."
+      "justification": "Catalogue 79 (Hommes > Vêtements > Sweats et pulls), relevé le 2026-11-04. Version large (Polo Ralph Lauren rattaché, « Lauren Ralph Lauren » à surveiller). Volume non vérifié — à mesurer en décembre."
     },
     {
-      "categorie": "Casques audio et écouteurs",
-      "catalogId": null,
-      "marque": "Apple",
-      "taille": null,
-      "tier": "priority",
-      "cibleActives": 70,
-      "valide": false,
-      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
-    },
-    {
-      "categorie": "Casques audio et écouteurs",
-      "catalogId": null,
-      "marque": "Sony",
-      "taille": null,
-      "tier": "priority",
-      "cibleActives": 70,
-      "valide": false,
-      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
-    },
-    {
-      "categorie": "Casques audio et écouteurs",
-      "catalogId": null,
-      "marque": "Bose",
+      "categorie": "Manteaux (H)",
+      "catalogId": 5,
+      "marque": "The North Face",
+      "brandId": 2319,
       "taille": null,
       "tier": "secondary",
       "cibleActives": 30,
       "valide": false,
-      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
-    },
-    {
-      "categorie": "Casques audio et écouteurs",
-      "catalogId": null,
-      "marque": "JBL",
-      "taille": null,
-      "tier": "tertiary",
-      "cibleActives": 20,
-      "valide": false,
-      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
-    },
-    {
-      "categorie": "Casques audio et écouteurs",
-      "catalogId": null,
-      "marque": "Samsung",
-      "taille": null,
-      "tier": "tertiary",
-      "cibleActives": 20,
-      "valide": false,
-      "justification": "Sous-catégorie « Casques audio et écouteurs » du parent 3566 (Électronique > Audio, casques et hi-fi, vérifié). Identifiant enfant non relevé ; 3566 seul inclut les enceintes (inutilisable pour JBL notamment)."
+      "justification": "Catalogue 5 « Manteaux Hommes » et marque Vinted 2319 (URL fournie le 2026-11-03, à confirmer en décembre via categoryPath). Demande forte de septembre à février. Volume non vérifié."
     }
   ]
 }

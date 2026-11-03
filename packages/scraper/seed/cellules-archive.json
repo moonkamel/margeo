@@ -1,0 +1,25 @@
+{
+  "_note": "Cellules ARCHIVÉES (pivot du 2026-11-02, périmètre réduit à 6 cellules). Ce fichier n'est lu par aucune commande : il conserve la configuration pour une réactivation éventuelle.",
+  "cellules": [
+    {
+      "categorie": "Casques audio et écouteurs",
+      "catalogId": 3678,
+      "marque": "Apple",
+      "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
+      "valide": false,
+      "justification": "Archivée le 2026-11-02 (pivot usage personnel, périmètre réduit à 6 cellules). Catalogue 3678 « Casques audio et écouteurs » (lien de recherche fourni, à confirmer via categoryPath)."
+    },
+    {
+      "categorie": "Casques audio et écouteurs",
+      "catalogId": 3678,
+      "marque": "Sony",
+      "taille": null,
+      "tier": "priority",
+      "cibleActives": 70,
+      "valide": false,
+      "justification": "Archivée le 2026-11-02 (pivot usage personnel, périmètre réduit à 6 cellules). Catalogue 3678 « Casques audio et écouteurs » (lien de recherche fourni, à confirmer via categoryPath)."
+    }
+  ]
+}

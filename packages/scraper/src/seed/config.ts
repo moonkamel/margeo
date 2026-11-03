@@ -12,6 +12,8 @@ const celluleSchema = z
   .object({
     categorie: z.string().min(1),
     catalogId: z.number().int().positive().nullable(),
+    /** Identifiant de marque Vinted : informatif, non utilisé pour la recherche (texte + alias). */
+    brandId: z.number().int().positive().optional(),
     marque: z.string().min(1),
     taille: z.string().min(1).nullable().default(null),
     tier: z.enum(['priority', 'secondary', 'tertiary']),

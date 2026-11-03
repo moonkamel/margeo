@@ -11,7 +11,9 @@ import {
 } from '../../src/seed/index.js';
 import { MemoryRepo } from './memory-repo.js';
 
-const PATH = new URL('../../seed/cellules.json', import.meta.url).pathname;
+// Configuration figée à 15 cellules (les volumes attendus des tests en dépendent).
+const PATH = new URL('../fixtures/cellules-15-reference.json', import.meta.url).pathname;
+const PATH_REEL = new URL('../../seed/cellules.json', import.meta.url).pathname;
 
 describe('ciblesVerification', () => {
   const configs = readCellules(PATH);
@@ -31,6 +33,17 @@ describe('ciblesVerification', () => {
 
   it('étape reste : les 12 autres cellules', () => {
     expect(ciblesVerification(configs, 'reste')).toHaveLength(12);
+  });
+
+  it('fichier réel (pivot) : décembre = New Balance ×2, Ralph Lauren, The North Face', () => {
+    const reste = ciblesVerification(readCellules(PATH_REEL), 'reste');
+    expect(reste.map((c) => [c.nom, c.catalogId])).toEqual([
+      ['Baskets (H)|New Balance', 1242],
+      ['Baskets (F)|New Balance', 2632],
+      ['Sweats et pulls (H)|Ralph Lauren', 79],
+      ['Manteaux (H)|The North Face', 5],
+    ]);
+    expect(reste.every((c) => c.refus.length === 0)).toBe(true);
   });
 
   it('dry-run : URL, coût max par tarif, alerte si l’arrêt dur serait dépassé', () => {

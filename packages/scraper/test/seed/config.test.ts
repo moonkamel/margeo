@@ -153,45 +153,44 @@ describe('cellulesValidees — sélection du run --execute', () => {
   });
 });
 
-describe('seed/cellules.json', () => {
+describe('seed/cellules.json (pivot du 2026-11-02 : 6 marques)', () => {
   const path = new URL('../../seed/cellules.json', import.meta.url).pathname;
   const cellules = readCellules(path);
 
-  it('15 cellules ; tier et cibleActives cohérents (vérifié par le schéma)', () => {
-    expect(cellules).toHaveLength(15);
-  });
-
-  it('catalogues relevés le 2026-11-04 : pulls 13 (F) / 79 (H), baskets Nike et Adidas 1242 (H)', () => {
-    const cat = Object.fromEntries(cellules.map((x) => [x.marque, x.catalogId]));
-    expect(cat).toMatchObject({
-      Nike: 1242,
-      Adidas: 1242,
-      'New Balance': null,
-      Asics: null,
-      Veja: null,
-      Apple: null,
-      Sézane: 13,
-      Sandro: 13,
-      Maje: 13,
-      'AMI Paris': 79,
-      'Ralph Lauren': 79,
-    });
-  });
-
-  it('test de pipeline : SEULES Nike, Adidas et Sézane sont validées, en secondary (30)', () => {
-    const validees = cellules.filter((x) => x.valide);
-    expect(validees.map((x) => [x.marque, x.catalogId, x.tier, x.cibleActives])).toEqual([
-      ['Nike', 1242, 'secondary', 30],
-      ['Adidas', 1242, 'secondary', 30],
-      ['Sézane', 13, 'secondary', 30],
+  it('7 cellules, toutes en secondary (30) ; New Balance des deux côtés', () => {
+    expect(cellules.map((x) => [x.categorie, x.marque, x.catalogId])).toEqual([
+      ['Baskets (H)', 'Nike', 1242],
+      ['Baskets (H)', 'Adidas', 1242],
+      ['Baskets (H)', 'New Balance', 1242],
+      ['Baskets (F)', 'New Balance', 2632],
+      ['Sweats et sweats à capuche (F)', 'Sézane', 13],
+      ['Sweats et pulls (H)', 'Ralph Lauren', 79],
+      ['Manteaux (H)', 'The North Face', 5],
     ]);
-    // Le fichier complet n'est pas crawlable (12 cellules refusées) : il faut filtrer.
+    expect(cellules.every((x) => x.tier === 'secondary' && x.cibleActives === 30)).toBe(true);
+    expect(cellules.find((x) => x.marque === 'The North Face')?.brandId).toBe(2319);
+  });
+
+  it('SEULES Nike, Adidas et Sézane sont validées ; les 4 autres attendent décembre', () => {
+    const { cellules: actives, ignorees } = cellulesValidees(cellules);
+    expect(actives.map((x) => x.marque)).toEqual(['Nike', 'Adidas', 'Sézane']);
+    expect(ignorees).toEqual([
+      'Baskets (H)|New Balance',
+      'Baskets (F)|New Balance',
+      'Sweats et pulls (H)|Ralph Lauren',
+      'Manteaux (H)|The North Face',
+    ]);
     expect(() => loadCellules(path)).toThrow(/non crawlables/);
-    expect(cellulesExecutables(validees).map((x) => x.marque)).toEqual([
-      'Nike',
-      'Adidas',
-      'Sézane',
-    ]);
     expect(loadCellules(path, '13|Sézane')).toHaveLength(1);
+  });
+
+  it('archive : Apple et Sony conservés hors du fichier lu par les commandes', () => {
+    const archive = readCellules(
+      new URL('../../seed/cellules-archive.json', import.meta.url).pathname,
+    );
+    expect(archive.map((x) => [x.marque, x.catalogId, x.valide])).toEqual([
+      ['Apple', 3678, false],
+      ['Sony', 3678, false],
+    ]);
   });
 });
