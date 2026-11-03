@@ -1,4 +1,4 @@
-import type { ModeleCible } from '@margeo/shared';
+import type { ModeleActif } from '@margeo/shared';
 import { abotapiSearchInput, abotapiUrlInput } from '../drivers/abotapi-input.js';
 import type { ActorRunner, RunActeur } from '../drivers/apify-async.js';
 import { buildModelSearchUrl, parseVintedItemUrl } from '../url.js';
@@ -40,7 +40,7 @@ function facturation(run: RunActeur): Facturation {
 export class ApifyScanSource implements ScanSource {
   constructor(private readonly runner: ActorRunner) {}
 
-  async rechercher(modele: ModeleCible, maxItems: number, plafond: PlafondAppel) {
+  async rechercher(modele: ModeleActif, maxItems: number, plafond: PlafondAppel) {
     const url = buildModelSearchUrl(modele.catalogId, modele.searchText);
     const run = await this.runner.run(abotapiSearchInput(url, maxItems, { fetchDetails: false }), {
       maxItems,

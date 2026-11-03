@@ -44,9 +44,12 @@ export const modeleCibleSchema = z
     marque: z.string().trim().min(1),
     modele: z.string().trim().min(1),
     searchText: z.string().trim().min(2),
-    catalogId: z.number().int().positive(),
+    /** Modèle scanné (true) ou simplement en réserve (false : ignoré par le scanner). */
+    actif: z.boolean(),
+    /** Identifiant du catalogue Vinted ; obligatoire pour un modèle actif. */
+    catalogId: z.number().int().positive().nullable(),
     /** Chemin attendu, pour contrôle et documentation uniquement (l'identifiant fait foi). */
-    catalogPath: z.array(z.string().min(1)).min(1),
+    catalogPath: z.array(z.string().min(1)),
     motsClesTitre: z.array(motCleSchema).min(1),
     exclusionsTitre: z.array(motCleSchema),
     classeColis: classeColisSchema,
@@ -55,7 +58,15 @@ export const modeleCibleSchema = z
     prixVerifie: z.boolean(),
     sourcePrix: z.string().trim().min(5),
   })
-  .strict();
+  .strict()
+  .superRefine((m, ctx) => {
+    if (m.actif && (m.catalogId === null || m.catalogPath.length === 0)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `Modèle actif sans catalogue (catalogId et catalogPath requis) : ${m.id}`,
+      });
+    }
+  });
 export type ModeleCible = z.infer<typeof modeleCibleSchema>;
 
 export const fichierModelesSchema = z
@@ -73,6 +84,14 @@ export const fichierModelesSchema = z
 
 export function lireModelesCibles(json: unknown): ModeleCible[] {
   return fichierModelesSchema.parse(json).modeles;
+}
+
+/** Modèle scanné : catalogue connu (garanti par le schéma pour `actif: true`). */
+export type ModeleActif = ModeleCible & { actif: true; catalogId: number };
+
+/** Modèles effectivement scannés ; les modèles en réserve (`actif: false`) sont ignorés. */
+export function modelesActifs(modeles: readonly ModeleCible[]): ModeleActif[] {
+  return modeles.filter((m): m is ModeleActif => m.actif && m.catalogId !== null);
 }
 
 /** Minuscules, sans accents, ponctuation → espaces, espaces simples, bordé d'espaces. */

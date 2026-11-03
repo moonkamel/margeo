@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { lireModelesCibles } from '@margeo/shared';
+import { lireModelesCibles, modelesActifs } from '@margeo/shared';
 import type { ActorRunner, LimitesRun } from '../../src/drivers/apify-async.js';
 import { ApifyScanSource } from '../../src/scan/index.js';
 import { buildModelSearchUrl } from '../../src/url.js';
@@ -10,7 +10,7 @@ const MODELES = lireModelesCibles(
     readFileSync(new URL('../../../shared/data/target-models.json', import.meta.url), 'utf8'),
   ),
 );
-const DETROIT = MODELES[0] as (typeof MODELES)[number];
+const DETROIT = modelesActifs(MODELES)[0] as ReturnType<typeof modelesActifs>[number];
 
 function runner() {
   const appels: { input: unknown; limites: LimitesRun }[] = [];

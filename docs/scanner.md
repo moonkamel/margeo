@@ -16,6 +16,24 @@ meilleures affaires sur des modèles ciblés, chacune avec un lien direct vers l
 - Une grille générique « neuf × 0,55 en très bon état » a été écartée : elle surestimait la revente
   de ~70 % (Detroit estimée 85 € pour un marché à 50 €) et aurait produit des faux positifs.
 
+## Modèles actifs et réserve
+
+Seuls les modèles `actif: true` sont recherchés et reconnus. Vague 1 : Carhartt (Detroit, Active,
+Crawford, OG Detroit WIP). En réserve (`actif: false`, sans catalogue) :
+
+| Vague     | Modèles                                                                                   | Condition d'activation                                    |
+| --------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------- |
+| 2         | Carhartt Chore Coat, Double Knee (catalogue pantalons) ; Patagonia Better Sweater, Snap-T | 2 semaines de Carhartt concluantes, coefficients recalés  |
+| 3         | Patagonia Retro-X, Nano Puff ; TNF Denali, Mountain Light, McMurdo                        | Multi-requêtes par run validé (coût), parade contrefaçons |
+| Plus tard | TNF Nuptse                                                                                | Contrefaçons massives                                     |
+
+Hors scanner : Sézane (médiane des ventes, modèles saisonniers) et sneakers (médiane ; Nike et
+Adidas arrêtés).
+
+Coefficients de la réserve : 0,9 × bas de la fourchette de revente / prix neuf (fourchettes non
+sourcées ; appliquée à la Detroit, la règle redonne 0,32, la valeur observée). Active Jacket
+ramenée de 0,38 à 0,31 par la même règle.
+
 ## Reconnaissance du modèle
 
 Marque exacte de l'annonce (« Carhartt » ≠ « Carhartt WIP »), mots-clés en mots entiers, mot-clé

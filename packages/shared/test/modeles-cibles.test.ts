@@ -5,6 +5,7 @@ import {
   coefficientModele,
   estimerDepuisPrixNeuf,
   lireModelesCibles,
+  modelesActifs,
   normaliserTexte,
   prixMaxAchatCents,
   reconnaitreModele,
@@ -34,6 +35,32 @@ describe('target-models.json', () => {
     }
   });
 
+  it('Carhartt seul est actif ; la réserve n’est pas scannée', () => {
+    const actifs = modelesActifs(MODELES).map((m) => m.id);
+    expect(actifs).toEqual([
+      'carhartt-detroit',
+      'carhartt-active',
+      'carhartt-crawford',
+      'carhartt-wip-og-detroit',
+    ]);
+    expect(MODELES.length).toBeGreaterThan(actifs.length);
+  });
+
+  it('exige un catalogue pour un modèle actif, pas pour un modèle en réserve', () => {
+    const base = fichier as { version: 1; modeles: Record<string, unknown>[] };
+    const m0 = base.modeles[0] as Record<string, unknown>;
+    const sansCatalogue = { ...m0, catalogId: null, catalogPath: [] };
+    expect(() => lireModelesCibles({ ...base, modeles: [sansCatalogue] })).toThrow(/catalogue/);
+    expect(
+      lireModelesCibles({ ...base, modeles: [{ ...sansCatalogue, actif: false }] }),
+    ).toHaveLength(1);
+  });
+
+  it('coefficients de la réserve prudents (≤ 0,45)', () => {
+    for (const m of MODELES.filter((x) => !x.actif))
+      expect(m.coefficientInitial).toBeLessThanOrEqual(0.45);
+  });
+
   it('signale les prix non vérifiés comme estimations', () => {
     for (const m of MODELES.filter((x) => !x.prixVerifie)) {
       expect(m.sourcePrix).toMatch(/estimation/);
@@ -52,8 +79,14 @@ describe('target-models.json', () => {
 });
 
 describe('reconnaitreModele', () => {
-  const r = (titre: string, marque: string | null = 'Carhartt') =>
-    reconnaitreModele(titre, marque, MODELES)?.modele.id ?? null;
+  const r = (
+    titre: string,
+    marque: string | null = titre.match(/patagonia/i)
+      ? 'Patagonia'
+      : titre.match(/north face/i)
+        ? 'The North Face'
+        : 'Carhartt',
+  ) => reconnaitreModele(titre, marque, MODELES)?.modele.id ?? null;
 
   it.each([
     ['Veste Carhartt Detroit marron taille M', 'carhartt-detroit'],
@@ -63,6 +96,8 @@ describe('reconnaitreModele', () => {
     ['Carhartt Crawford Detroit noir', 'carhartt-crawford'],
     ['Carhartt Active Jacket J130 duck', 'carhartt-active'],
     ['Carhartt active hooded jacket', 'carhartt-active'],
+    ['Patagonia Retro-X fleece', 'patagonia-retro-x'],
+    ['Polaire The North Face Denali', 'tnf-denali'],
   ])('%s → %s', (titre, attendu) => {
     expect(r(titre)).toBe(attendu);
   });

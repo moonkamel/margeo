@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
-import { lireModelesCibles, type ModeleCible } from '@margeo/shared';
+import { lireModelesCibles, modelesActifs, type ModeleCible } from '@margeo/shared';
 import {
   apercuDepuisRecherche,
   budgetScan,
@@ -101,7 +101,7 @@ describe('runScan', () => {
     });
     const r = await runScan(options(s));
 
-    expect(s.rechercher).toHaveBeenCalledTimes(MODELES.length);
+    expect(s.rechercher).toHaveBeenCalledTimes(modelesActifs(MODELES).length);
     expect(s.details).toHaveBeenCalledTimes(1);
     const urls = s.details.mock.calls[0]?.[0] ?? [];
     // Candidats : A, Crawford (une seule fois), Detroit à 45 €. Pas le « style », pas Dickies,
@@ -121,6 +121,17 @@ describe('runScan', () => {
     expect(r.parModele['carhartt-detroit']).toEqual({ resultats: 7, reconnues: 5, candidates: 3 });
     expect(r.categoriesObservees).toEqual({ 'Hommes Vestes': 3 });
     expect(r.depenseRunMilli).toBeGreaterThan(0);
+  });
+
+  it('ignore les modèles en réserve : ni recherche, ni reconnaissance', async () => {
+    const s = source({
+      'carhartt-detroit': [item('401', 'Carhartt Chore Coat Michigan', 10), A],
+    });
+    const r = await runScan(options(s));
+    const recherches = s.rechercher.mock.calls.map((c) => c[0].id);
+    expect(recherches).not.toContain('carhartt-chore-coat');
+    expect(recherches).not.toContain('tnf-nuptse');
+    expect(r.affaires.map((a) => a.externalId)).toEqual(['101']);
   });
 
   it('limite au top N mais compte toutes les affaires retenues', async () => {

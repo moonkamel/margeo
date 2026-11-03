@@ -19,6 +19,8 @@ import {
   prixMaxAchatCents,
   reconnaitreModele,
   type Etat,
+  modelesActifs,
+  type ModeleActif,
   type ModeleCible,
   type Preferences,
   type SourceCoefficient,
@@ -38,7 +40,7 @@ import type { Facturation, PlafondAppel } from '../seed/types.js';
 export interface ScanSource {
   /** Recherche d'un modèle, sans détails (aperçu : titre, marque, prix, URL). */
   rechercher(
-    modele: ModeleCible,
+    modele: ModeleActif,
     maxItems: number,
     plafond: PlafondAppel,
   ): Promise<{ items: unknown[] } & Facturation>;
@@ -103,6 +105,7 @@ export interface ScanResult {
 }
 
 export interface ScanOptions {
+  /** Modèles du fichier ; seuls les modèles actifs sont recherchés et reconnus. */
   modeles: readonly ModeleCible[];
   source: ScanSource;
   budget: BudgetConfig;
@@ -155,6 +158,7 @@ export async function runScan(o: ScanOptions): Promise<ScanResult> {
   const now = o.now ?? (() => new Date());
   const log = o.log ?? (() => {});
   const preferences = o.preferences ?? DEFAULT_PREFERENCES;
+  const modeles = modelesActifs(o.modeles);
   const ventes = (m: ModeleCible) => o.ventesParModele?.get(m.id) ?? [];
   const ledger = new BudgetLedger(o.budget, { suivi: 0, decouverte: o.depenseDejaMilli });
   const debut = ledger.totalMilli;
@@ -166,7 +170,7 @@ export async function runScan(o: ScanOptions): Promise<ScanResult> {
 
   // ── 1-2. Recherches + filtre grossier ───────────────────────────────────────────────────
   const candidats = new Map<string, { apercu: Apercu; modele: ModeleCible; plafond: number }>();
-  for (const modele of o.modeles) {
+  for (const modele of modeles) {
     const stats: StatsModele = { resultats: 0, reconnues: 0, candidates: 0 };
     parModele[modele.id] = stats;
     const r = ledger.reserve('decouverte', o.maxItemsRecherche);
@@ -198,7 +202,7 @@ export async function runScan(o: ScanOptions): Promise<ScanResult> {
       if (!ap) continue;
       // Reconnaissance sur TOUS les modèles : une Crawford trouvée par la recherche « Detroit »
       // est rattachée à la Crawford.
-      const rec = reconnaitreModele(ap.titre, ap.marque, o.modeles);
+      const rec = reconnaitreModele(ap.titre, ap.marque, modeles);
       if (!rec) continue;
       stats.reconnues++;
       if (o.dejaNotifies.has(ap.externalId) || candidats.has(ap.externalId)) continue;
@@ -254,7 +258,7 @@ export async function runScan(o: ScanOptions): Promise<ScanResult> {
           const categorie = isRecord(cat) ? texte(cat['catalog_title']) : null;
           if (categorie) categoriesObservees[categorie] = (categoriesObservees[categorie] ?? 0) + 1;
           // Revérification sur les données détaillées (titre et marque font foi).
-          const rec = reconnaitreModele(l.titre, l.marque, o.modeles);
+          const rec = reconnaitreModele(l.titre, l.marque, modeles);
           if (!rec || o.dejaNotifies.has(l.externalId)) continue;
           const v = ventes(rec.modele);
           const { estimation, margin } = analyserAnnonceModele(
