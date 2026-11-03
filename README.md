@@ -121,4 +121,5 @@ pnpm seed:run --execute --budget-max 10000      # GitHub Actions uniquement
       (`isModeVenteDisponible`) tant qu'il n'est pas vérifié.
 - [ ] **Vestiges du modèle SaaS en base** : tables `User`, `MagicLinkToken`, `RefreshToken`,
       `Subscription`, enum `Plan` et colonne `Analysis.consommeQuota` (créées par la migration
-      initiale, vides). Leur suppression demande une migration : décision à prendre.
+      initiale, vides). **Décision du 2026-11-03 : on n'y touche pas avant l'API minimale** ;
+      suppression dans une migration dédiée une fois le schéma stabilisé.
