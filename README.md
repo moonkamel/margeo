@@ -1,11 +1,13 @@
 # Margeo Sourcing
 
-Copilote d'achat pour revendeurs Vinted : « si j'achète cet article à ce prix, combien je gagne vraiment ? »
+Copilote d'achat **personnel** pour revendre sur Vinted : « si j'achète cet article à ce prix,
+combien je gagne vraiment ? »
 
-> État : **Phase 2a — Plomberie scraping** (driver Apify testé sur fixtures, normalisation,
-> détection de vente, cache Redis, CLI de debug). Aucune donnée de vente réelle pour l'instant :
-> les analyses renvoient `insufficient_data` tant que le crawl de seed (Phase 2b) n'a pas tourné.
-> Le README complet (déploiement, sécurité CSRF, limites du scraping) arrive en Phase 6.
+> **Outil personnel** (pivot du 2026-11-02) : pas de SaaS, pas de multi-utilisateur, pas de
+> paiement. Trois briques : le **seed** (crawl quotidien des ventes réelles, en cours de test sur
+> 3 cellules), une **API minimale** (`POST /analyze`, `GET /estimate`, token fixe) et une
+> **extension** side panel. Tant que le seed n'a pas accumulé assez de ventes, les analyses
+> renvoient `insufficient_data`.
 
 ## Démarrage rapide
 
@@ -42,7 +44,7 @@ Les tests d'intégration du cache Redis s'exécutent dès que `REDIS_URL` est d�
 
 ```
 apps/api            Fastify (GET /health pour l'instant)
-packages/shared     Schémas Zod, moteur de marge, estimation, score, quota — fonctions pures
+packages/shared     Schémas Zod, moteur de marge, estimation, score — fonctions pures
 packages/scraper    ScraperDriver, driver apify, normalisation, détection de vente, cache, CLI
                     (driver custom : stub documenté, hors MVP)
 packages/db         Schéma Prisma + client (migrations dans infra/migrations)
@@ -58,7 +60,7 @@ infra/              docker-compose, migrations SQL
   vitesse inconnue → 0,5 et `confidence: 'low'`.
 - Le prix de revente est la **médiane des ventes réelles** (30 jours glissants, ≥ 5 ventes),
   avec repli (catégorie, marque, taille) → (catégorie, marque) → (catégorie).
-  Sans données suffisantes : `insufficient_data`, aucune marge n'est inventée et le quota n'est pas consommé.
+  Sans données suffisantes : `insufficient_data`, aucune marge n'est inventée.
 - Le prix de vente enregistré est le **dernier prix affiché** avant la vente, pas le prix négocié.
 - Barème Vinted : `packages/shared/src/constants/vinted.ts` (date de vérification et valeurs non confirmées signalées).
 
@@ -111,9 +113,12 @@ pnpm seed:run --execute --budget-max 10000      # GitHub Actions uniquement
   existent ; la vérification du volume mesure un plancher.
 - **Tarif Starter mesuré** : 2,37 $ / 1 000 avec détails, 0,04 $ par run (1 Go de mémoire).
 
-## TODO avant ouverture commerciale
+## Points ouverts
 
-- [ ] **Vérifier la grille Vinted Pro** (commission forfaitaire 5 €/vente retenue, sources
+- [ ] **Vérifier la grille Vinted Pro** (utile seulement si les ventes passent en mode Pro) (commission forfaitaire 5 €/vente retenue, sources
       contradictoires) et la grille transporteurs (port). Les deux modes sont `verifie: false`
-      dans `packages/shared/src/constants/vinted.ts` ; le mode PRO reste masqué dans l'UI
+      dans `packages/shared/src/constants/vinted.ts` ; le mode PRO reste masqué
       (`isModeVenteDisponible`) tant qu'il n'est pas vérifié.
+- [ ] **Vestiges du modèle SaaS en base** : tables `User`, `MagicLinkToken`, `RefreshToken`,
+      `Subscription`, enum `Plan` et colonne `Analysis.consommeQuota` (créées par la migration
+      initiale, vides). Leur suppression demande une migration : décision à prendre.

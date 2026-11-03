@@ -20,14 +20,6 @@ export const DEFAULT_PREFERENCES = {
   modeVente: 'PARTICULIER',
 } as const;
 
-/** Quota freemium : nombre d'analyses servies par mois civil (heure de Paris). */
-export const FREE_MONTHLY_QUOTA = 10;
-
-/** Une réanalyse de la même URL dans cette fenêtre ne consomme pas de quota. */
-export const FREE_REANALYSIS_WINDOW_MS = 24 * 60 * 60 * 1000;
-
-export const QUOTA_TIMEZONE = 'Europe/Paris';
-
 /** Paramètres de la médiane mobile des ventes réelles. */
 export const ESTIMATION = {
   /** Fenêtre glissante, en jours. */

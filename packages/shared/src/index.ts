@@ -6,4 +6,3 @@ export * from './score.js';
 export * from './margin.js';
 export * from './estimate.js';
 export * from './analyze.js';
-export * from './quota.js';
