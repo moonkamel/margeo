@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   analysisResultSchema,
   analyzeListing,
+  analyzeRequestSchema,
   DEFAULT_PREFERENCES,
   MESSAGE_DONNEES_INSUFFISANTES,
   type AnalyzeInput,
@@ -48,5 +49,45 @@ describe('insufficient_data', () => {
 
   it('le schéma refuse une payload insufficient_data incomplète', () => {
     expect(analysisResultSchema.safeParse({ status: 'insufficient_data' }).success).toBe(false);
+  });
+});
+
+describe('analyzeRequestSchema — contrat POST /analyze (lecture sur la page)', () => {
+  const ok = {
+    externalId: '4817263512',
+    url: 'https://www.vinted.fr/items/4817263512-pull-sezane',
+    titre: 'Pull Sézane en laine',
+    prixCents: 3500,
+    marque: 'Sézane',
+    taille: 'M',
+    etat: 'Très bon état',
+    categorie: 'Femmes > Vêtements > Pulls',
+  };
+
+  it('accepte les champs minimaux lus sur la page', () => {
+    expect(analyzeRequestSchema.parse(ok)).toEqual(ok);
+    expect(
+      analyzeRequestSchema.parse({ ...ok, taille: null, etat: null, categorie: null }).taille,
+    ).toBeNull();
+  });
+
+  it('titre, prix et marque obligatoires (règle A : pas de résultat partiel)', () => {
+    for (const champ of ['titre', 'prixCents', 'marque'] as const) {
+      const { [champ]: _retire, ...sans } = ok;
+      void _retire;
+      expect(analyzeRequestSchema.safeParse(sans).success).toBe(false);
+    }
+  });
+
+  it('aucun champ supplémentaire (description, vendeur, photos refusés)', () => {
+    for (const extra of [{ description: 'x' }, { vendeur: 'x' }, { photos: [] }]) {
+      expect(analyzeRequestSchema.safeParse({ ...ok, ...extra }).success).toBe(false);
+    }
+  });
+
+  it('identifiant numérique, prix entier positif', () => {
+    expect(analyzeRequestSchema.safeParse({ ...ok, externalId: 'abc' }).success).toBe(false);
+    expect(analyzeRequestSchema.safeParse({ ...ok, prixCents: 0 }).success).toBe(false);
+    expect(analyzeRequestSchema.safeParse({ ...ok, prixCents: 12.5 }).success).toBe(false);
   });
 });

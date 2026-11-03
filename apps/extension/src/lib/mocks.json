@@ -1,0 +1,387 @@
+[
+  {
+    "cle": "vert",
+    "libelle": "Bonne affaire (VERT, confiance élevée)",
+    "annonce": {
+      "externalId": "100000",
+      "url": "https://www.vinted.fr/items/100000-annonce",
+      "titre": "Nike Air Force 1 blanches",
+      "prixCents": 2500,
+      "marque": "Nike",
+      "taille": "42",
+      "etat": "Très bon état",
+      "categorie": "Baskets (H)"
+    },
+    "resultat": {
+      "status": "ok",
+      "estimate": {
+        "prixReventeEstimeCents": 6950,
+        "medianeCents": 6950,
+        "nbVentes": 6,
+        "niveau": "categorie_marque_taille",
+        "source": "empirical",
+        "multiplicateurEtat": 1,
+        "fenetreJours": 30,
+        "minCents": 6500,
+        "maxCents": 7500,
+        "medianJoursVente": 6
+      },
+      "margin": {
+        "margeNetteCents": 2600,
+        "statut": "VERT",
+        "score": 53,
+        "confidence": "high",
+        "vitesse": 0.8888888888888888,
+        "lignes": [
+          {
+            "cle": "prix_revente",
+            "libelle": "Prix de revente estimé",
+            "montantCents": 6950
+          },
+          {
+            "cle": "prix_achat",
+            "libelle": "Prix d'achat",
+            "montantCents": -2500
+          },
+          {
+            "cle": "frais_vinted",
+            "libelle": "Frais Vinted",
+            "montantCents": -195,
+            "detail": "Protection acheteurs à l'achat : 1,95 € · Commission vendeur (particulier) : 0,00 € (barème à confirmer)"
+          },
+          {
+            "cle": "frais_port",
+            "libelle": "Frais de port (achat)",
+            "montantCents": -350,
+            "detail": "Colis petit (tarif estimé)"
+          },
+          {
+            "cle": "emballage",
+            "libelle": "Emballage",
+            "montantCents": -50,
+            "editable": ["coutEmballageCents"]
+          },
+          {
+            "cle": "cotisations",
+            "libelle": "Cotisations sociales",
+            "montantCents": -855,
+            "detail": "12,3 % du prix de revente (micro-BIC, vente de marchandises)"
+          },
+          {
+            "cle": "temps",
+            "libelle": "Valorisation du temps",
+            "montantCents": -400,
+            "detail": "20 min à 12,00 €/h",
+            "editable": ["tempsEstimeMinutes", "tauxHoraireCents"]
+          }
+        ],
+        "preferences": {
+          "tauxHoraireCents": 1200,
+          "seuilMargeCents": 500,
+          "tempsEstimeMinutes": 20,
+          "coutEmballageCents": 50,
+          "modeVente": "PARTICULIER"
+        }
+      }
+    },
+    "erreur": null
+  },
+  {
+    "cle": "orange",
+    "libelle": "Marge faible (ORANGE)",
+    "annonce": {
+      "externalId": "100001",
+      "url": "https://www.vinted.fr/items/100001-annonce",
+      "titre": "Adidas Samba OG",
+      "prixCents": 4800,
+      "marque": "Adidas",
+      "taille": "41",
+      "etat": "Très bon état",
+      "categorie": "Baskets (H)"
+    },
+    "resultat": {
+      "status": "ok",
+      "estimate": {
+        "prixReventeEstimeCents": 7100,
+        "medianeCents": 7100,
+        "nbVentes": 5,
+        "niveau": "categorie_marque_taille",
+        "source": "empirical",
+        "multiplicateurEtat": 1,
+        "fenetreJours": 30,
+        "minCents": 6900,
+        "maxCents": 7300,
+        "medianJoursVente": 9
+      },
+      "margin": {
+        "margeNetteCents": 317,
+        "statut": "ORANGE",
+        "score": 26,
+        "confidence": "high",
+        "vitesse": 0.7777777777777778,
+        "lignes": [
+          {
+            "cle": "prix_revente",
+            "libelle": "Prix de revente estimé",
+            "montantCents": 7100
+          },
+          {
+            "cle": "prix_achat",
+            "libelle": "Prix d'achat",
+            "montantCents": -4800
+          },
+          {
+            "cle": "frais_vinted",
+            "libelle": "Frais Vinted",
+            "montantCents": -310,
+            "detail": "Protection acheteurs à l'achat : 3,10 € · Commission vendeur (particulier) : 0,00 € (barème à confirmer)"
+          },
+          {
+            "cle": "frais_port",
+            "libelle": "Frais de port (achat)",
+            "montantCents": -350,
+            "detail": "Colis petit (tarif estimé)"
+          },
+          {
+            "cle": "emballage",
+            "libelle": "Emballage",
+            "montantCents": -50,
+            "editable": ["coutEmballageCents"]
+          },
+          {
+            "cle": "cotisations",
+            "libelle": "Cotisations sociales",
+            "montantCents": -873,
+            "detail": "12,3 % du prix de revente (micro-BIC, vente de marchandises)"
+          },
+          {
+            "cle": "temps",
+            "libelle": "Valorisation du temps",
+            "montantCents": -400,
+            "detail": "20 min à 12,00 €/h",
+            "editable": ["tempsEstimeMinutes", "tauxHoraireCents"]
+          }
+        ],
+        "preferences": {
+          "tauxHoraireCents": 1200,
+          "seuilMargeCents": 500,
+          "tempsEstimeMinutes": 20,
+          "coutEmballageCents": 50,
+          "modeVente": "PARTICULIER"
+        }
+      }
+    },
+    "erreur": null
+  },
+  {
+    "cle": "rouge",
+    "libelle": "À éviter (ROUGE)",
+    "annonce": {
+      "externalId": "100002",
+      "url": "https://www.vinted.fr/items/100002-annonce",
+      "titre": "Pull Sézane col V",
+      "prixCents": 6000,
+      "marque": "Sézane",
+      "taille": null,
+      "etat": "Très bon état",
+      "categorie": "Sweats et sweats à capuche (F)"
+    },
+    "resultat": {
+      "status": "ok",
+      "estimate": {
+        "prixReventeEstimeCents": 5800,
+        "medianeCents": 5800,
+        "nbVentes": 5,
+        "niveau": "categorie_marque",
+        "source": "empirical",
+        "multiplicateurEtat": 1,
+        "fenetreJours": 30,
+        "minCents": 5500,
+        "maxCents": 6000,
+        "medianJoursVente": 12
+      },
+      "margin": {
+        "margeNetteCents": -2083,
+        "statut": "ROUGE",
+        "score": 20,
+        "confidence": "high",
+        "vitesse": 0.6666666666666666,
+        "lignes": [
+          {
+            "cle": "prix_revente",
+            "libelle": "Prix de revente estimé",
+            "montantCents": 5800
+          },
+          {
+            "cle": "prix_achat",
+            "libelle": "Prix d'achat",
+            "montantCents": -6000
+          },
+          {
+            "cle": "frais_vinted",
+            "libelle": "Frais Vinted",
+            "montantCents": -370,
+            "detail": "Protection acheteurs à l'achat : 3,70 € · Commission vendeur (particulier) : 0,00 € (barème à confirmer)"
+          },
+          {
+            "cle": "frais_port",
+            "libelle": "Frais de port (achat)",
+            "montantCents": -350,
+            "detail": "Colis petit (tarif estimé)"
+          },
+          {
+            "cle": "emballage",
+            "libelle": "Emballage",
+            "montantCents": -50,
+            "editable": ["coutEmballageCents"]
+          },
+          {
+            "cle": "cotisations",
+            "libelle": "Cotisations sociales",
+            "montantCents": -713,
+            "detail": "12,3 % du prix de revente (micro-BIC, vente de marchandises)"
+          },
+          {
+            "cle": "temps",
+            "libelle": "Valorisation du temps",
+            "montantCents": -400,
+            "detail": "20 min à 12,00 €/h",
+            "editable": ["tempsEstimeMinutes", "tauxHoraireCents"]
+          }
+        ],
+        "preferences": {
+          "tauxHoraireCents": 1200,
+          "seuilMargeCents": 500,
+          "tempsEstimeMinutes": 20,
+          "coutEmballageCents": 50,
+          "modeVente": "PARTICULIER"
+        }
+      }
+    },
+    "erreur": null
+  },
+  {
+    "cle": "insuffisant",
+    "libelle": "Données insuffisantes",
+    "annonce": {
+      "externalId": "100003",
+      "url": "https://www.vinted.fr/items/100003-annonce",
+      "titre": "Ralph Lauren pull torsadé",
+      "prixCents": 2000,
+      "marque": "Ralph Lauren",
+      "taille": "L",
+      "etat": "Très bon état",
+      "categorie": "Sweats et pulls (H)"
+    },
+    "resultat": {
+      "status": "insufficient_data",
+      "message": "Données insuffisantes pour estimer une marge fiable",
+      "nbVentesTrouvees": 2,
+      "minVentesRequis": 5
+    },
+    "erreur": null
+  },
+  {
+    "cle": "confiance-basse",
+    "libelle": "Confiance basse (vitesse de vente inconnue)",
+    "annonce": {
+      "externalId": "100004",
+      "url": "https://www.vinted.fr/items/100004-annonce",
+      "titre": "Nike Dunk Low",
+      "prixCents": 3000,
+      "marque": "Nike",
+      "taille": "43",
+      "etat": "Très bon état",
+      "categorie": "Baskets (H)"
+    },
+    "resultat": {
+      "status": "ok",
+      "estimate": {
+        "prixReventeEstimeCents": 7100,
+        "medianeCents": 7100,
+        "nbVentes": 5,
+        "niveau": "categorie_marque",
+        "source": "empirical",
+        "multiplicateurEtat": 1,
+        "fenetreJours": 30,
+        "minCents": 6800,
+        "maxCents": 7400,
+        "medianJoursVente": null
+      },
+      "margin": {
+        "margeNetteCents": 2207,
+        "statut": "VERT",
+        "score": 37,
+        "confidence": "low",
+        "vitesse": 0.5,
+        "lignes": [
+          {
+            "cle": "prix_revente",
+            "libelle": "Prix de revente estimé",
+            "montantCents": 7100
+          },
+          {
+            "cle": "prix_achat",
+            "libelle": "Prix d'achat",
+            "montantCents": -3000
+          },
+          {
+            "cle": "frais_vinted",
+            "libelle": "Frais Vinted",
+            "montantCents": -220,
+            "detail": "Protection acheteurs à l'achat : 2,20 € · Commission vendeur (particulier) : 0,00 € (barème à confirmer)"
+          },
+          {
+            "cle": "frais_port",
+            "libelle": "Frais de port (achat)",
+            "montantCents": -350,
+            "detail": "Colis petit (tarif estimé)"
+          },
+          {
+            "cle": "emballage",
+            "libelle": "Emballage",
+            "montantCents": -50,
+            "editable": ["coutEmballageCents"]
+          },
+          {
+            "cle": "cotisations",
+            "libelle": "Cotisations sociales",
+            "montantCents": -873,
+            "detail": "12,3 % du prix de revente (micro-BIC, vente de marchandises)"
+          },
+          {
+            "cle": "temps",
+            "libelle": "Valorisation du temps",
+            "montantCents": -400,
+            "detail": "20 min à 12,00 €/h",
+            "editable": ["tempsEstimeMinutes", "tauxHoraireCents"]
+          }
+        ],
+        "preferences": {
+          "tauxHoraireCents": 1200,
+          "seuilMargeCents": 500,
+          "tempsEstimeMinutes": 20,
+          "coutEmballageCents": 50,
+          "modeVente": "PARTICULIER"
+        }
+      }
+    },
+    "erreur": null
+  },
+  {
+    "cle": "erreur-reseau",
+    "libelle": "Erreur réseau (API injoignable)",
+    "annonce": {
+      "externalId": "100005",
+      "url": "https://www.vinted.fr/items/100005-annonce",
+      "titre": "Adidas Gazelle",
+      "prixCents": 3500,
+      "marque": "Adidas",
+      "taille": "40",
+      "etat": "Très bon état",
+      "categorie": "Baskets (H)"
+    },
+    "resultat": null,
+    "erreur": "reseau"
+  }
+]

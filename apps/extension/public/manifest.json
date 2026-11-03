@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Margeo",
+  "version": "0.1.0",
+  "description": "Marge nette d'une annonce Vinted, calculée sur des ventes réelles.",
+  "minimum_chrome_version": "116",
+  "permissions": ["sidePanel", "storage"],
+  "host_permissions": ["https://www.vinted.fr/*", "http://localhost:3000/*"],
+  "background": { "service_worker": "service-worker.js", "type": "module" },
+  "content_scripts": [
+    {
+      "matches": ["https://www.vinted.fr/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": { "default_path": "sidepanel.html" },
+  "action": { "default_title": "Margeo : analyser l'annonce" }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@margeo/extension",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Extension Chrome (MV3) side panel : marge nette d'une annonce Vinted. Sans framework, aucune dépendance d'exécution.",
+  "scripts": {
+    "mocks": "tsx --conditions=@margeo/source scripts/generer-mocks.ts",
+    "build": "node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  }
+}

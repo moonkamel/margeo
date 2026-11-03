@@ -165,6 +165,23 @@ export const marginResultSchema = z.strictObject({
 });
 export type MarginResult = z.infer<typeof marginResultSchema>;
 
+/**
+ * Requête `POST /analyze` (décision du 2026-11-03) : l'extension lit l'annonce SUR LA PAGE et
+ * n'envoie que ces champs — ni description, ni vendeur, ni photo (minimisation par construction).
+ * Les textes sont ceux affichés par Vinted ; l'API les rapproche (alias de marque, état…).
+ */
+export const analyzeRequestSchema = z.strictObject({
+  externalId: z.string().regex(/^\d+$/),
+  url: z.url(),
+  titre: z.string().trim().min(1).max(300),
+  prixCents: z.number().int().positive(),
+  marque: z.string().trim().min(1).max(100),
+  taille: z.string().trim().min(1).max(50).nullable(),
+  etat: z.string().trim().min(1).max(50).nullable(),
+  categorie: z.string().trim().min(1).max(200).nullable(),
+});
+export type AnalyzeRequest = z.infer<typeof analyzeRequestSchema>;
+
 /** Résultat d'une analyse : servie (`ok`) ou non estimable (`insufficient_data`). */
 export const analysisResultSchema = z.discriminatedUnion('status', [
   z.object({
