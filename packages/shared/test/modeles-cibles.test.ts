@@ -37,12 +37,7 @@ describe('target-models.json', () => {
 
   it('Carhartt seul est actif ; la réserve n’est pas scannée', () => {
     const actifs = modelesActifs(MODELES).map((m) => m.id);
-    expect(actifs).toEqual([
-      'carhartt-detroit',
-      'carhartt-active',
-      'carhartt-crawford',
-      'carhartt-wip-og-detroit',
-    ]);
+    expect(actifs).toEqual(['carhartt-detroit', 'carhartt-active']);
     expect(MODELES.length).toBeGreaterThan(actifs.length);
   });
 
@@ -164,14 +159,14 @@ describe('coefficient et estimation', () => {
     expect(coefficientModele({ ...DETROIT, prixNeufCents: 1000 }, v).coefficient).toBeCloseTo(1, 6);
   });
 
-  it('applique le multiplicateur d’état', () => {
-    expect(estimerDepuisPrixNeuf(DETROIT, 'TRES_BON').valeurReventeCents).toBe(4960);
-    expect(estimerDepuisPrixNeuf(DETROIT, 'BON').valeurReventeCents).toBe(4216);
-    expect(estimerDepuisPrixNeuf(DETROIT, 'NEUF_AVEC_ETIQUETTE').valeurReventeCents).toBe(5704);
+  it('applique le multiplicateur d’état et la décote de négociation (× 0,9)', () => {
+    expect(estimerDepuisPrixNeuf(DETROIT, 'TRES_BON').valeurReventeCents).toBe(4464);
+    expect(estimerDepuisPrixNeuf(DETROIT, 'BON').valeurReventeCents).toBe(3794);
+    expect(estimerDepuisPrixNeuf(DETROIT, 'NEUF_AVEC_ETIQUETTE').valeurReventeCents).toBe(5134);
   });
 
   it('prix d’achat maximal = revente dans le meilleur état', () => {
-    expect(prixMaxAchatCents(DETROIT)).toBe(5704);
+    expect(prixMaxAchatCents(DETROIT)).toBe(5134);
   });
 });
 
@@ -181,7 +176,7 @@ describe('analyserAnnonceModele', () => {
       prixCents: 1500,
       etat: 'TRES_BON',
     });
-    expect(estimation.valeurReventeCents).toBe(4960);
+    expect(estimation.valeurReventeCents).toBe(4464);
     expect(margin.margeNetteCents).toBeGreaterThan(1000);
     expect(margin.statut).toBe('VERT');
     expect(margin.confidence).toBe('low');

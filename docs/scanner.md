@@ -11,6 +11,8 @@ meilleures affaires sur des modèles ciblés, chacune avec un lien direct vers l
   (Detroit : 49,95 € / ~155 € ≈ 0,32). Les autres états passent par `MULTIPLICATEURS_ETAT_REPLI`.
 - Recalage sur les ventes observées du modèle : < 3 ventes → initial ; 3 à 9 → moyenne
   initial / observé ; ≥ 10 → observé seul.
+- Décote de **négociation** (`FACTEUR_NEGOCIATION = 0,9`) : les médianes portent sur le prix
+  affiché ; la valeur estimée est le prix encaissé (Detroit très bon état : 44,64 €).
 - Prix neufs = **estimations** (`prixVerifie: false`) tant qu'ils ne sont pas vérifiés ; le message
   Telegram le signale.
 - Une grille générique « neuf × 0,55 en très bon état » a été écartée : elle surestimait la revente
@@ -18,8 +20,9 @@ meilleures affaires sur des modèles ciblés, chacune avec un lien direct vers l
 
 ## Modèles actifs et réserve
 
-Seuls les modèles `actif: true` sont recherchés et reconnus. Vague 1 : Carhartt (Detroit, Active,
-Crawford, OG Detroit WIP). En réserve (`actif: false`, sans catalogue) :
+Seuls les modèles `actif: true` sont recherchés ; la reconnaissance considère aussi la réserve
+pour départager (une Crawford n'est jamais prise pour une Detroit). Vague 1 : Carhartt Detroit et
+Active. Crawford et OG Detroit WIP sont repassés en réserve (aucune donnée de revente). En réserve (`actif: false`, sans catalogue) :
 
 | Vague     | Modèles                                                                                   | Condition d'activation                                    |
 | --------- | ----------------------------------------------------------------------------------------- | --------------------------------------------------------- |

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "notes": "Modèles du scanner. Seuls les modèles « actif: true » sont scannés ; les autres sont en réserve. Prix neufs et coefficients = ESTIMATIONS (prixVerifie: false) tant qu'ils ne sont pas vérifiés. coefficientInitial = revente / prix neuf en TRÈS BON ÉTAT (autres états : MULTIPLICATEURS_ETAT_REPLI). Règle de prudence pour les modèles sans médiane observée : 0,9 × bas de la fourchette de revente / prix neuf (appliquée à la Detroit, elle redonne 0,32, la valeur observée). catalogPath des modèles actifs à confirmer par le run de test.",
+  "notes": "Modèles du scanner. Seuls les modèles « actif: true » sont scannés ; les autres sont en réserve. Prix neufs et coefficients = ESTIMATIONS (prixVerifie: false) tant qu'ils ne sont pas vérifiés. coefficientInitial = revente / prix neuf en TRÈS BON ÉTAT (autres états : MULTIPLICATEURS_ETAT_REPLI). Règle de prudence pour les modèles sans médiane observée : 0,9 × bas de la fourchette de revente / prix neuf (appliquée à la Detroit, elle redonne 0,32, la valeur observée). Valeur estimée = prix neuf × coefficient × état × 0,9 (négociation : prix encaissé). catalogPath des modèles actifs à confirmer par le run de test.",
   "modeles": [
     {
       "id": "carhartt-detroit",
@@ -36,7 +36,7 @@
     },
     {
       "id": "carhartt-crawford",
-      "actif": true,
+      "actif": false,
       "marque": "Carhartt",
       "modele": "Crawford Detroit",
       "searchText": "Carhartt Crawford",
@@ -48,11 +48,11 @@
       "prixNeufCents": 10000,
       "coefficientInitial": 0.38,
       "prixVerifie": false,
-      "sourcePrix": "estimation, 2026-11-03, à vérifier sur carhartt.com"
+      "sourcePrix": "estimation SANS donnée de revente (mis en réserve le 2026-11-03), 2026-11-03, à vérifier sur carhartt.com"
     },
     {
       "id": "carhartt-wip-og-detroit",
-      "actif": true,
+      "actif": false,
       "marque": "Carhartt WIP",
       "modele": "OG Detroit Jacket",
       "searchText": "Carhartt WIP OG Detroit",
@@ -64,7 +64,7 @@
       "prixNeufCents": 25000,
       "coefficientInitial": 0.45,
       "prixVerifie": false,
-      "sourcePrix": "estimation, 2026-11-03, à vérifier sur carhartt-wip.com"
+      "sourcePrix": "estimation SANS donnée de revente (mis en réserve le 2026-11-03), 2026-11-03, à vérifier sur carhartt-wip.com"
     },
     {
       "id": "carhartt-chore-coat",

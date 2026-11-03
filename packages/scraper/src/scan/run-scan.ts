@@ -200,10 +200,10 @@ export async function runScan(o: ScanOptions): Promise<ScanResult> {
     for (const raw of reponse.items) {
       const ap = apercuDepuisRecherche(raw);
       if (!ap) continue;
-      // Reconnaissance sur TOUS les modèles : une Crawford trouvée par la recherche « Detroit »
-      // est rattachée à la Crawford.
-      const rec = reconnaitreModele(ap.titre, ap.marque, modeles);
-      if (!rec) continue;
+      // Reconnaissance sur TOUS les modèles (réserve comprise) pour départager : une Crawford
+      // (en réserve) trouvée par la recherche « Detroit » ne doit pas passer pour une Detroit.
+      const rec = reconnaitreModele(ap.titre, ap.marque, o.modeles);
+      if (!rec?.modele.actif) continue;
       stats.reconnues++;
       if (o.dejaNotifies.has(ap.externalId) || candidats.has(ap.externalId)) continue;
       const plafond = prixMaxAchatCents(rec.modele, ventes(rec.modele));
@@ -258,8 +258,8 @@ export async function runScan(o: ScanOptions): Promise<ScanResult> {
           const categorie = isRecord(cat) ? texte(cat['catalog_title']) : null;
           if (categorie) categoriesObservees[categorie] = (categoriesObservees[categorie] ?? 0) + 1;
           // Revérification sur les données détaillées (titre et marque font foi).
-          const rec = reconnaitreModele(l.titre, l.marque, modeles);
-          if (!rec || o.dejaNotifies.has(l.externalId)) continue;
+          const rec = reconnaitreModele(l.titre, l.marque, o.modeles);
+          if (!rec?.modele.actif || o.dejaNotifies.has(l.externalId)) continue;
           const v = ventes(rec.modele);
           const { estimation, margin } = analyserAnnonceModele(
             rec.modele,

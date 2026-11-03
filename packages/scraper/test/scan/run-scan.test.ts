@@ -51,6 +51,7 @@ const STYLE = item('102', 'Veste style Detroit Carhartt', 10);
 const DICKIES = item('103', 'Veste Detroit', 12, { marque: 'Dickies' });
 const CHERE = item('104', 'Carhartt Detroit J97', 70);
 const CRAWFORD = item('105', 'Carhartt Crawford Detroit noir', 12);
+const ACTIVE = item('108', 'Carhartt Active Jacket J130 duck', 8);
 const DEJA = item('106', 'Carhartt Detroit jacket', 14);
 const MARCHE = item('107', 'Carhartt Detroit', 45);
 
@@ -97,29 +98,31 @@ describe('runScan', () => {
   it('filtre, dédoublonne, détaille en un seul run et classe par marge', async () => {
     const s = source({
       'carhartt-detroit': [A, STYLE, DICKIES, CHERE, CRAWFORD, DEJA, MARCHE],
-      'carhartt-crawford': [CRAWFORD],
+      'carhartt-active': [ACTIVE, A],
     });
     const r = await runScan(options(s));
 
     expect(s.rechercher).toHaveBeenCalledTimes(modelesActifs(MODELES).length);
     expect(s.details).toHaveBeenCalledTimes(1);
     const urls = s.details.mock.calls[0]?.[0] ?? [];
-    // Candidats : A, Crawford (une seule fois), Detroit à 45 €. Pas le « style », pas Dickies,
-    // pas la Detroit à 70 € (> revente max 57,04 €), pas l'annonce déjà notifiée.
-    expect(urls.map((u) => /items\/(\d+)/.exec(u)?.[1]).sort()).toEqual(['101', '105', '107']);
+    // Candidats : A (une seule fois malgré deux recherches), Detroit à 45 €, Active. Pas le
+    // « style », pas Dickies, pas la Detroit à 70 € (> revente max 51,34 €), pas l'annonce déjà
+    // notifiée, pas la Crawford (modèle en réserve, à ne pas confondre avec une Detroit).
+    expect(urls.map((u) => /items\/(\d+)/.exec(u)?.[1]).sort()).toEqual(['101', '107', '108']);
 
     expect(r.statut).toBe('COMPLETED');
     expect(r.affaires.map((a) => [a.externalId, a.modeleId])).toEqual([
+      ['108', 'carhartt-active'],
       ['101', 'carhartt-detroit'],
-      ['105', 'carhartt-crawford'],
     ]);
-    const a = r.affaires[0];
-    expect(a?.valeurReventeCents).toBe(4960);
+    const a = r.affaires.find((x) => x.externalId === '101');
+    expect(a?.valeurReventeCents).toBe(4464);
     expect(a?.margeNetteCents).toBeGreaterThanOrEqual(1000);
     expect(a?.photoUrl).toBe('https://example.invalid/photo.webp');
     expect(a?.prixVerifie).toBe(false);
-    expect(r.parModele['carhartt-detroit']).toEqual({ resultats: 7, reconnues: 5, candidates: 3 });
+    expect(r.parModele['carhartt-detroit']).toEqual({ resultats: 7, reconnues: 4, candidates: 2 });
     expect(r.categoriesObservees).toEqual({ 'Hommes Vestes': 3 });
+    expect(r.parModele['carhartt-active']).toEqual({ resultats: 2, reconnues: 2, candidates: 1 });
     expect(r.depenseRunMilli).toBeGreaterThan(0);
   });
 
@@ -163,13 +166,13 @@ describe('runScan', () => {
     const r = await runScan(
       options(
         source(
-          { 'carhartt-detroit': [A], 'carhartt-crawford': [CRAWFORD] },
+          { 'carhartt-detroit': [A], 'carhartt-active': [ACTIVE] },
           { rechercheEchoue: 'carhartt-detroit' },
         ),
       ),
     );
     expect(r.statut).toBe('PARTIAL');
-    expect(r.affaires.map((a) => a.externalId)).toEqual(['105']);
+    expect(r.affaires.map((a) => a.externalId)).toEqual(['108']);
   });
 
   it('budget de la campagne épuisé : aucun appel', async () => {

@@ -15,9 +15,19 @@ import { classeColisSchema, type Etat, type MarginResult, type Preferences } fro
  *   - < 3 ventes  : coefficient initial seul ;
  *   - 3 à 9 ventes : 0,5 × initial + 0,5 × observé (un prix aberrant ne fait pas tout basculer) ;
  *   - ≥ 10 ventes : coefficient observé seul.
+ *
+ * Les coefficients portent sur le prix AFFICHÉ ; la valeur de revente estimée applique ensuite
+ * `FACTEUR_NEGOCIATION` (prix réellement encaissé).
  */
 
 export const VENTES_MIN_MIXTE = 3;
+
+/**
+ * Prix ENCAISSÉ / prix affiché. Les médianes (externes ou du seed) portent sur le dernier prix
+ * AFFICHÉ ; sur Vinted, l'acheteur négocie le plus souvent (offres). Décote de 10 % appliquée à
+ * toute estimation, pour raisonner sur ce qui arrive réellement sur le compte.
+ */
+export const FACTEUR_NEGOCIATION = 0.9;
 export const VENTES_MIN_OBSERVE = 10;
 
 /** Exclusions communes : annonces qui citent le modèle sans l'être (« style Detroit »). */
@@ -182,7 +192,7 @@ export function estimerDepuisPrixNeuf(
   const { coefficient, source } = coefficientModele(modele, ventes);
   return {
     valeurReventeCents: Math.round(
-      modele.prixNeufCents * coefficient * MULTIPLICATEURS_ETAT_REPLI[etat],
+      modele.prixNeufCents * coefficient * MULTIPLICATEURS_ETAT_REPLI[etat] * FACTEUR_NEGOCIATION,
     ),
     coefficient,
     source,
