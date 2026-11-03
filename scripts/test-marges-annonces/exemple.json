@@ -1,0 +1,107 @@
+{
+ "extraitLe": "2026-11-03T08:00:00Z",
+ "annonces": [
+  {
+   "externalId": "1",
+   "url": "https://www.vinted.fr/items/1-exemple",
+   "titre": "FICTIF Nike Air Force 1",
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixCents": 2000
+  },
+  {
+   "externalId": "2",
+   "url": "https://www.vinted.fr/items/2-exemple",
+   "titre": "FICTIF Nike Dunk",
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixCents": 4500
+  },
+  {
+   "externalId": "3",
+   "url": "https://www.vinted.fr/items/3-exemple",
+   "titre": "FICTIF Nike Air Max",
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixCents": 6500
+  },
+  {
+   "externalId": "4",
+   "url": "https://www.vinted.fr/items/4-exemple",
+   "titre": "FICTIF Sézane pull",
+   "categorie": "Sweats et sweats à capuche (F)",
+   "marque": "Sézane",
+   "taille": null,
+   "etat": "TRES_BON",
+   "prixCents": 3000
+  }
+ ],
+ "ventes": [
+  {
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixVenteCents": 6000,
+   "soldAt": "2026-10-20T12:00:00Z",
+   "listedAt": "2026-10-15T12:00:00Z",
+   "source": "sold_status"
+  },
+  {
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixVenteCents": 6500,
+   "soldAt": "2026-10-22T12:00:00Z",
+   "listedAt": "2026-10-17T12:00:00Z",
+   "source": "sold_status"
+  },
+  {
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixVenteCents": 7000,
+   "soldAt": "2026-10-24T12:00:00Z",
+   "listedAt": "2026-10-19T12:00:00Z",
+   "source": "sold_status"
+  },
+  {
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixVenteCents": 7000,
+   "soldAt": "2026-10-26T12:00:00Z",
+   "listedAt": "2026-10-21T12:00:00Z",
+   "source": "sold_status"
+  },
+  {
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixVenteCents": 7500,
+   "soldAt": "2026-10-28T12:00:00Z",
+   "listedAt": "2026-10-23T12:00:00Z",
+   "source": "sold_status"
+  },
+  {
+   "categorie": "Baskets (H)",
+   "marque": "Nike",
+   "taille": "42",
+   "etat": "TRES_BON",
+   "prixVenteCents": 8000,
+   "soldAt": "2026-10-29T12:00:00Z",
+   "listedAt": "2026-10-24T12:00:00Z",
+   "source": "sold_status"
+  }
+ ]
+}
